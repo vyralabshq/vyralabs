@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+@theme {
+  /* Backgrounds (warm near-black) */
+  --color-bg: #0c0805;
+  --color-surface: #140d07;
+  --color-elevated: #1c1209;
+
+  /* Accent (sun orange) */
+  --color-accent: #f77f1b;
+  --color-accent-bright: #ffa033;
+
+  /* Text */
+  --color-ink: #fdf3e8;
+  --color-ink-secondary: #b89274;
+  --color-ink-muted: #6e503a;
+
+  /* Fonts */
+  --font-display: "Syne", system-ui, sans-serif;
+  --font-sans: "Syne", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+
+  /* Pulse-dot animation */
+  --animate-pulse-dot: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0% {
+    box-shadow: 0 0 0 0 rgba(247, 127, 27, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(247, 127, 27, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(247, 127, 27, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-dot {
+    animation: none;
+  }
+}
+
+/* Custom backdrops Tailwind can't express cleanly */
+@utility grid-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(
+    rgba(247, 127, 27, 0.12) 1.2px,
+    transparent 1.5px
+  );
+  background-size: 45px 45px;
+  -webkit-mask-image: radial-gradient(
+    ellipse 80% 70% at 50% 38%,
+    transparent 12%,
+    #000 85%
+  );
+  mask-image: radial-gradient(
+    ellipse 80% 70% at 50% 38%,
+    transparent 12%,
+    #000 85%
+  );
+}
+
+@utility glow {
+  position: fixed;
+  top: -340px;
+  left: 50%;
+  width: 900px;
+  height: 700px;
+  transform: translateX(-50%);
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    rgba(247, 127, 27, 0.16) 0%,
+    rgba(247, 127, 27, 0.05) 38%,
+    transparent 70%
+  );
+}
