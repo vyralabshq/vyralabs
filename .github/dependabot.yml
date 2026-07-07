@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # Keep npm dependencies patched, delivered as reviewable PRs.
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Batch low-risk updates so review stays manageable.
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # Keep the GitHub Actions themselves pinned and current.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly

@@ -1,0 +1,61 @@
+name: CI
+
+# Docs-only changes don't affect the build, so skip CI for them to
+# save Actions minutes. Keep this list in sync with non-code paths.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - ".agents/**"
+      - "LICENSE"
+      - ".gitignore"
+      - ".vscode/**"
+  pull_request:
+    paths-ignore:
+      - "**/*.md"
+      - ".agents/**"
+      - "LICENSE"
+      - ".gitignore"
+      - ".vscode/**"
+
+# Least-privilege default; jobs get only what they explicitly need.
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # Deterministic install straight from the lockfile; fails if
+      # package.json and package-lock.json disagree.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # Fail the job on moderate+ known vulnerabilities so they get
+      # triaged in a PR instead of silently shipping.
+      - name: Audit dependencies
+        run: npm audit --audit-level=moderate
