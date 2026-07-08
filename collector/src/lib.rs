@@ -6,10 +6,12 @@
 pub mod config;
 pub mod datapoints;
 pub mod derive;
+pub mod event;
 pub mod monitor;
 pub mod redact;
 pub mod schema;
 pub mod snapshot;
+pub mod state;
 pub mod window;
 
 pub use redact::Redactor;
