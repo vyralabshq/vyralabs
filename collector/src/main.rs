@@ -12,7 +12,8 @@
 //!   collector --daemon
 //!
 //! Daemon env (all optional): RPC_URL (default http://localhost:8899), LOG_FILE, OUT_DIR
-//! (default out), STATE_PATH (default state.json), CYCLE_SECS (default 10).
+//! (default out), STATE_PATH (default state.json), CYCLE_SECS (default 10), VOTE_SECS
+//! (vote-account fetch gate, default 60).
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -126,8 +127,9 @@ fn run_daemon() -> ExitCode {
     let state_path = PathBuf::from(env_or("STATE_PATH", "state.json"));
     let log_file = std::env::var("LOG_FILE").ok();
     let cycle = Duration::from_secs(env_or("CYCLE_SECS", "10").parse().unwrap_or(10));
-    // getVoteAccounts / vote-account are heavier and change slowly: fetch at most every 5 min.
-    let vote_gate = Duration::from_secs(300);
+    // getVoteAccounts / vote-account are a bit heavier, so fetch on their own gate (default
+    // 60s) rather than every cycle. Localhost RPC has no rate limit, so 60s is fine.
+    let vote_gate = Duration::from_secs(env_or("VOTE_SECS", "60").parse().unwrap_or(60));
 
     if let Err(e) = std::fs::create_dir_all(&out_dir) {
         eprintln!("fatal: cannot create OUT_DIR {}: {e}", out_dir.display());
