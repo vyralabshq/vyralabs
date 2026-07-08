@@ -44,15 +44,20 @@ fn run_once(args: &[String]) -> ExitCode {
             Vec::new()
         }
     });
-    let monitor_output = flag_value(args, "--monitor").and_then(|p| {
-        std::fs::read_to_string(&p)
-            .map_err(|e| eprintln!("warn: could not read --monitor {p}: {e}"))
-            .ok()
-    });
+    let read_file = |flag: &str| -> Option<String> {
+        flag_value(args, flag).and_then(|p| {
+            std::fs::read_to_string(&p)
+                .map_err(|e| eprintln!("warn: could not read {flag} {p}: {e}"))
+                .ok()
+        })
+    };
 
     let inputs = Inputs {
         log_lines,
-        monitor_output,
+        monitor_output: read_file("--monitor"),
+        // OS stats are gathered live by the daemon (#14); the --once dry-run leaves them null.
+        os_stats: None,
+        vote_account_json: read_file("--vote-account"),
         identity_pubkey: Some(IDENTITY_PUBKEY.to_string()),
         vote_pubkey: Some(VOTE_PUBKEY.to_string()),
         cluster: CLUSTER.to_string(),
