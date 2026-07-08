@@ -127,6 +127,9 @@ export interface EpochCredit {
   max: number | null;
 }
 
+/** Whole-page liveness signal (#7). Values always visible, just dimmed off LIVE. */
+export type Liveness = "LIVE" | "STALE" | "OFFLINE";
+
 export interface DashboardState {
   /** false only when the input is unusable garbage; the object is still valid to render. */
   ok: boolean;
@@ -144,6 +147,8 @@ export interface DashboardState {
   ageSeconds: number | null;
   /** whole-page staleness: age > 30s (also true when the timestamp is missing). */
   stale: boolean;
+  /** three-state liveness (#7): LIVE <=30s, STALE 30-90s, OFFLINE >90s / missing / parse fail. */
+  liveness: Liveness;
 
   // Status pills (#3)
   nodeHealthy: boolean | null;

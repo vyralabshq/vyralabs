@@ -23,5 +23,13 @@ export const HAS_LIVE_SOURCE = METRICS_BASE_URL !== "";
 /** Whole-page staleness bound (seconds): snapshot older than this dims the page. */
 export const STALE_AFTER_SECONDS = 30;
 
+/** Offline bound (seconds): past this the snapshot is treated as OFFLINE (#7). */
+export const OFFLINE_AFTER_SECONDS = 90;
+
+/** Live poll cadences (ms): latest every 10s, 1h history 30s, 24h history 5 min / tab focus. */
+export const POLL_LATEST_MS = 10_000;
+export const POLL_HISTORY_1H_MS = 30_000;
+export const POLL_HISTORY_24H_MS = 5 * 60_000;
+
 /** Approximate testnet slot time, used only for the epoch ETA estimate. */
 export const SLOT_TIME_SECONDS = 0.4;
