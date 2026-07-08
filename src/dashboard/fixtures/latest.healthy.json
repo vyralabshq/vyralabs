@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-08T10:00:00Z",
+  "cluster": "testnet",
+  "identity_pubkey": "vyRa8J7ULHfUAdnkTHP3YGhcLWaLURXLmD7CiZkMzWg",
+  "vote_pubkey": "9LjQ5UC1gyebUySAbodzHJdLSkYAYgVeQcr2vv6FZP6E",
+  "health": { "rpc": "ok" },
+  "version": { "version": "2.2.14", "jito": true },
+  "slots": {
+    "processed": 420559551,
+    "confirmed": 420559550,
+    "finalized": 420559519,
+    "full_snapshot": 420556800,
+    "incremental_snapshot": 420559400,
+    "network_tx_total": 389421772913
+  },
+  "identity_balance_sol": 12.4837,
+  "epoch": {
+    "epoch": 986,
+    "slot_index": 180351,
+    "slots_in_epoch": 432000,
+    "absolute_slot": 420559550,
+    "block_height": 372634600
+  },
+  "vote": { "latest": 420559550, "root": 420559519 },
+  "block_production": { "produced": 365517, "dropped": 7461 },
+  "fork_weight": 0.9511685203027939,
+  "system": {
+    "ledger_disk": { "pct": 63.2, "used_gb": 948.0, "total_gb": 1500.0 },
+    "accounts_disk": { "pct": 41.8, "used_gb": 209.0, "total_gb": 500.0 },
+    "memory": { "pct": 72.5, "used_gb": 185.6, "total_gb": 256.0 },
+    "load_avg": [4.21, 3.98, 3.75],
+    "cpu_cores": 32,
+    "uptime_seconds": 806400,
+    "process_active": true
+  },
+  "vote_account": {
+    "stale": false,
+    "fetched_at": "2026-07-08T09:58:37Z",
+    "credits_lifetime": 1898792,
+    "commission_pct": 100,
+    "activated_stake_sol": 500.0,
+    "epoch_credits": [
+      { "epoch": 986, "credits": 658805, "max": 6912000 },
+      { "epoch": 985, "credits": 1239987, "max": 6912000 }
+    ]
+  },
+  "events": [
+    {
+      "ts": "2026-07-08T09:57:12Z",
+      "level": "WARN",
+      "msg": "vote-processing-timing slot_confirming_time_us elevated"
+    },
+    {
+      "ts": "2026-07-08T09:52:03Z",
+      "level": "ERROR",
+      "msg": "recv-window-insert-shreds num_errors_cross_beam_recv_timeout=1"
+    }
+  ],
+  "errors": []
+}
