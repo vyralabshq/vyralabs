@@ -19,7 +19,7 @@ use crate::event::build_events;
 use crate::monitor::parse_monitor;
 use crate::osstats::{parse_os_stats, OsStatsInput};
 use crate::redact::Redactor;
-use crate::rpc::{parse_balance, parse_epoch_info, parse_health, parse_version};
+use crate::rpc::{parse_activated_stake, parse_balance, parse_epoch_info, parse_health, parse_version};
 use crate::schema::{
     empty_history, empty_latest, History, HistoryPoint, Latest, Version, VoteAccount,
 };
@@ -61,6 +61,8 @@ pub struct Inputs {
     pub os_stats: Option<OsStatsInput>,
     /// Raw `solana vote-account --output json` (issue #11, Source E).
     pub vote_account_json: Option<String>,
+    /// Raw localhost `getVoteAccounts` — only for activated stake, which the CLI omits (#11).
+    pub vote_accounts_json: Option<String>,
     pub identity_pubkey: Option<String>,
     pub vote_pubkey: Option<String>,
     pub cluster: String,
@@ -241,12 +243,17 @@ pub fn build_snapshot(
     // instead of emptying. The 5-minute fetch gate lives in the I/O shell (#14).
     match inputs.vote_account_json.as_deref().map(parse_vote_account) {
         Some(Some(d)) => {
+            // Activated stake comes from getVoteAccounts (the CLI omits it); rest from the CLI.
+            let activated = inputs
+                .vote_accounts_json
+                .as_deref()
+                .and_then(parse_activated_stake);
             latest.vote_account = VoteAccount {
                 stale: false,
                 fetched_at: Some(generated_at.clone()),
                 credits_lifetime: d.credits_lifetime,
                 commission_pct: d.commission_pct,
-                activated_stake_sol: d.activated_stake_sol,
+                activated_stake_sol: activated.or(d.activated_stake_sol),
                 epoch_credits: d.epoch_credits,
             };
         }

@@ -13,3 +13,9 @@ pub const CLUSTER: &str = "testnet";
 // The node runs jito-solana (getVersion reports plain "solana-core: 4.1.1" with no jito
 // marker, so RPC can't detect it). This validator is jito, so the Jito pill is true.
 pub const IS_JITO_CLIENT: bool = true;
+
+// Host paths for OS-stat gathering. On this box ledger and accounts share one nvme
+// (both /mnt/ledger and / resolve to /dev/nvme0n1p2). #14 makes these .env-overridable.
+pub const LEDGER_PATH: &str = "/mnt/ledger";
+pub const ACCOUNTS_PATH: &str = "/mnt/ledger";
+pub const SERVICE_NAME: &str = "sol.service";
