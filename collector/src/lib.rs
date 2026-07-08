@@ -7,6 +7,7 @@ pub mod config;
 pub mod datapoints;
 pub mod derive;
 pub mod event;
+pub mod fetch;
 pub mod monitor;
 pub mod osstats;
 pub mod redact;

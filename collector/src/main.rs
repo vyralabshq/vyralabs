@@ -1,49 +1,30 @@
-//! Collector CLI (issue #9 `--once` dry-run; the daemon loop + R2 upload are issue #14).
+//! Collector CLI.
 //!
-//! `--once` runs `build_snapshot` against injected input files and writes the three JSON
-//! objects locally — no network, no R2. It loads/saves rolling-window state so repeated
-//! runs continue the same history series (issue #13).
+//! `--once`   one dry-run over injected input files -> writes the three JSON objects locally.
+//! `--daemon` (issue #14) the production loop: every cycle it fetches every source on the
+//!            box, assembles the snapshot, and publishes the JSON. Publishing is local-file
+//!            for now; the R2 upload plugs into `publish` once the bucket exists.
+//!
+//! Both load/save rolling-window state so history survives restarts (issue #13).
 //!
 //! Usage:
-//!   collector --once [--log <file>] [--monitor <file>] [--state <file>] [--out <dir>]
+//!   collector --once   [--log <file>] [--monitor <file>] [--rpc-* <file>] [--state <f>] [--out <dir>]
+//!   collector --daemon
 //!
-//! `--log` and `--monitor` are captured source outputs (e.g. `agave-validator monitor >
-//! monitor.txt`); omitted sources become null fields + errors[] entries, never a failure.
+//! Daemon env (all optional): RPC_URL (default http://localhost:8899), LOG_FILE, OUT_DIR
+//! (default out), STATE_PATH (default state.json), CYCLE_SECS (default 10).
 
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitCode};
+use std::process::ExitCode;
+use std::time::{Duration, Instant};
 
 use chrono::Utc;
 
 use collector::config::{
     ACCOUNTS_PATH, CLUSTER, IDENTITY_PUBKEY, IS_JITO_CLIENT, LEDGER_PATH, SERVICE_NAME, VOTE_PUBKEY,
 };
-use collector::osstats::OsStatsInput;
 use collector::state::{load_state, save_state};
-use collector::{build_snapshot, Inputs};
-
-/// Run a command, returning stdout on success (exit 0), else None. Local reads only.
-fn run(cmd: &str, args: &[&str]) -> Option<String> {
-    let out = Command::new(cmd).args(args).output().ok()?;
-    out.status
-        .success()
-        .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
-}
-
-/// Gather OS stats by running local commands / reading /proc. Each field independent;
-/// anything unavailable (e.g. on non-Linux dev) is simply None. This is the local half of
-/// the fetch shell; the network sources + daemon loop are #14.
-fn gather_os_stats() -> OsStatsInput {
-    OsStatsInput {
-        df_ledger: run("df", &["-B1", LEDGER_PATH]),
-        df_accounts: run("df", &["-B1", ACCOUNTS_PATH]),
-        meminfo: std::fs::read_to_string("/proc/meminfo").ok(),
-        loadavg: std::fs::read_to_string("/proc/loadavg").ok(),
-        nproc: run("nproc", &[]),
-        active_enter: run("systemctl", &["show", SERVICE_NAME, "-p", "ActiveEnterTimestamp"]),
-        is_active: run("systemctl", &["is-active", SERVICE_NAME]),
-    }
-}
+use collector::{build_snapshot, fetch, Inputs, SnapshotResult};
 
 /// Value following `flag` in the args, if present (`--flag value`).
 fn flag_value(args: &[String], flag: &str) -> Option<String> {
@@ -53,11 +34,25 @@ fn flag_value(args: &[String], flag: &str) -> Option<String> {
         .cloned()
 }
 
+fn env_or(key: &str, default: &str) -> String {
+    std::env::var(key).unwrap_or_else(|_| default.to_string())
+}
+
 fn write_json<T: serde::Serialize>(dir: &Path, name: &str, value: &T) -> std::io::Result<()> {
     let text = serde_json::to_string_pretty(value).expect("snapshot is JSON-serializable");
     std::fs::write(dir.join(name), text)
 }
 
+/// Publish the snapshot. Local-file for now; the R2 upload (whole-object PUT with
+/// Content-Type + Cache-Control per file) plugs in HERE once the bucket + creds exist (#14).
+fn publish(dir: &Path, out: &SnapshotResult) -> std::io::Result<()> {
+    write_json(dir, "latest.json", &out.latest)?;
+    write_json(dir, "history-1h.json", &out.history_1h)?;
+    write_json(dir, "history-24h.json", &out.history_24h)?;
+    Ok(())
+}
+
+/// One dry-run over captured input files (issue #9). No network.
 fn run_once(args: &[String]) -> ExitCode {
     let out_dir = PathBuf::from(flag_value(args, "--out").unwrap_or_else(|| ".".to_string()));
     let state_path =
@@ -86,7 +81,7 @@ fn run_once(args: &[String]) -> ExitCode {
         rpc_version: read_file("--rpc-version"),
         rpc_balance: read_file("--rpc-balance"),
         jito_client: Some(IS_JITO_CLIENT),
-        os_stats: Some(gather_os_stats()),
+        os_stats: Some(fetch::gather_os_stats(LEDGER_PATH, ACCOUNTS_PATH, SERVICE_NAME)),
         vote_account_json: read_file("--vote-account"),
         vote_accounts_json: read_file("--get-vote-accounts"),
         identity_pubkey: Some(IDENTITY_PUBKEY.to_string()),
@@ -101,16 +96,9 @@ fn run_once(args: &[String]) -> ExitCode {
         eprintln!("error: cannot create --out {}: {e}", out_dir.display());
         return ExitCode::FAILURE;
     }
-    let writes = [
-        write_json(&out_dir, "latest.json", &out.latest),
-        write_json(&out_dir, "history-1h.json", &out.history_1h),
-        write_json(&out_dir, "history-24h.json", &out.history_24h),
-    ];
-    for w in writes {
-        if let Err(e) = w {
-            eprintln!("error: writing output: {e}");
-            return ExitCode::FAILURE;
-        }
+    if let Err(e) = publish(&out_dir, &out) {
+        eprintln!("error: writing output: {e}");
+        return ExitCode::FAILURE;
     }
     if let Err(e) = save_state(&state_path, &out.new_state) {
         eprintln!("error: writing state {}: {e}", state_path.display());
@@ -126,14 +114,91 @@ fn run_once(args: &[String]) -> ExitCode {
     ExitCode::SUCCESS
 }
 
+/// The production loop (issue #14): fetch every source each cycle, assemble, publish.
+/// Guarded fetches mean any single failure becomes a null field, never a crashed loop.
+fn run_daemon() -> ExitCode {
+    let rpc_url = env_or("RPC_URL", "http://localhost:8899");
+    let out_dir = PathBuf::from(env_or("OUT_DIR", "out"));
+    let state_path = PathBuf::from(env_or("STATE_PATH", "state.json"));
+    let log_file = std::env::var("LOG_FILE").ok();
+    let cycle = Duration::from_secs(env_or("CYCLE_SECS", "10").parse().unwrap_or(10));
+    // getVoteAccounts / vote-account are heavier and change slowly: fetch at most every 5 min.
+    let vote_gate = Duration::from_secs(300);
+
+    if let Err(e) = std::fs::create_dir_all(&out_dir) {
+        eprintln!("fatal: cannot create OUT_DIR {}: {e}", out_dir.display());
+        return ExitCode::FAILURE;
+    }
+    let mut state = load_state(&state_path);
+    let mut last_vote_fetch: Option<Instant> = None;
+    eprintln!(
+        "collector daemon up: cycle {}s, out {}, rpc {rpc_url}",
+        cycle.as_secs(),
+        out_dir.display()
+    );
+
+    loop {
+        let start = Instant::now();
+        let do_vote = last_vote_fetch.is_none_or(|t| t.elapsed() >= vote_gate);
+
+        let inputs = Inputs {
+            log_lines: fetch::read_log_lines(log_file.as_deref(), SERVICE_NAME, 500),
+            monitor_output: fetch::fetch_monitor(LEDGER_PATH, "agave-validator"),
+            rpc_health: fetch::curl_rpc(&rpc_url, "getHealth", "[]"),
+            rpc_epoch_info: fetch::curl_rpc(&rpc_url, "getEpochInfo", "[]"),
+            rpc_version: fetch::curl_rpc(&rpc_url, "getVersion", "[]"),
+            rpc_balance: fetch::curl_rpc(&rpc_url, "getBalance", &format!("[\"{IDENTITY_PUBKEY}\"]")),
+            os_stats: Some(fetch::gather_os_stats(LEDGER_PATH, ACCOUNTS_PATH, SERVICE_NAME)),
+            vote_account_json: do_vote.then(|| fetch::fetch_vote_account(VOTE_PUBKEY)).flatten(),
+            vote_accounts_json: do_vote
+                .then(|| {
+                    fetch::curl_rpc(
+                        &rpc_url,
+                        "getVoteAccounts",
+                        &format!("[{{\"votePubkey\":\"{VOTE_PUBKEY}\"}}]"),
+                    )
+                })
+                .flatten(),
+            jito_client: Some(IS_JITO_CLIENT),
+            identity_pubkey: Some(IDENTITY_PUBKEY.to_string()),
+            vote_pubkey: Some(VOTE_PUBKEY.to_string()),
+            cluster: CLUSTER.to_string(),
+        };
+        if do_vote {
+            last_vote_fetch = Some(Instant::now());
+        }
+
+        let out = build_snapshot(&inputs, Utc::now(), Some(&state));
+        if let Err(e) = publish(&out_dir, &out) {
+            eprintln!("publish error: {e}");
+        }
+        state = out.new_state;
+        if let Err(e) = save_state(&state_path, &state) {
+            eprintln!("state error: {e}");
+        }
+        // Quiet on success; surface which sources failed this cycle.
+        if !out.errors.is_empty() {
+            eprintln!("cycle: {} source error(s): {}", out.errors.len(), out.errors.join("; "));
+        }
+
+        let elapsed = start.elapsed();
+        if elapsed < cycle {
+            std::thread::sleep(cycle - elapsed);
+        }
+    }
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().collect();
-    if args.iter().any(|a| a == "--once") {
+    if args.iter().any(|a| a == "--daemon") {
+        run_daemon()
+    } else if args.iter().any(|a| a == "--once") {
         run_once(&args)
     } else {
         eprintln!(
-            "collector: only --once is implemented (the daemon loop + R2 upload land in #14)\n\
-             usage: collector --once [--log <file>] [--monitor <file>] [--state <file>] [--out <dir>]"
+            "usage:\n  collector --daemon\n  collector --once [--log <f>] [--monitor <f>] \
+             [--rpc-health <f>] [--rpc-epoch <f>] [--rpc-version <f>] [--rpc-balance <f>] \
+             [--vote-account <f>] [--get-vote-accounts <f>] [--state <f>] [--out <dir>]"
         );
         ExitCode::FAILURE
     }
