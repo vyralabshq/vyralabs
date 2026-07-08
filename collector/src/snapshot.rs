@@ -35,6 +35,17 @@ const H24_WINDOW_S: i64 = 86_400;
 const STATE_H1: &str = "history_1h";
 const STATE_H24: &str = "history_24h";
 
+// Vote account is stale only if the last good fetch is older than this (> 2 missed 5-min
+// windows); within normal cadence a carried-forward value is fresh.
+const VOTE_STALE_AFTER_S: i64 = 11 * 60;
+
+/// Parse an `iso_z`-formatted timestamp (as written to `fetched_at`), else None.
+fn parse_iso_z(s: &str) -> Option<DateTime<Utc>> {
+    chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%SZ")
+        .ok()
+        .map(|n| n.and_utc())
+}
+
 /// Load a persisted point series from `prev_state`; missing or malformed -> empty.
 fn read_points(state: Option<&Map<String, Json>>, key: &str) -> Vec<HistoryPoint> {
     state
@@ -238,9 +249,8 @@ pub fn build_snapshot(
         None => errors.push("os stats: not available".to_string()),
     }
 
-    // Vote account (issue #11, Source E): on a fresh fetch, stamp fetched_at = now. When
-    // absent, carry the previous good value from state and mark it stale, so the panel dims
-    // instead of emptying. The 5-minute fetch gate lives in the I/O shell (#14).
+    // Vote account (issue #11): fetched on a ~5-min cadence. Between fetches we carry the
+    // last value forward and only mark it stale once it's genuinely old (fetches failing).
     match inputs.vote_account_json.as_deref().map(parse_vote_account) {
         Some(Some(d)) => {
             // Activated stake comes from getVoteAccounts (the CLI omits it); rest from the CLI.
@@ -263,7 +273,15 @@ pub fn build_snapshot(
                 .and_then(|s| s.get("vote_account"))
                 .and_then(|v| serde_json::from_value::<VoteAccount>(v.clone()).ok())
             {
-                Some(prev) => latest.vote_account = VoteAccount { stale: true, ..prev },
+                Some(prev) => {
+                    let age = prev
+                        .fetched_at
+                        .as_deref()
+                        .and_then(parse_iso_z)
+                        .map(|t| (now - t).num_seconds());
+                    let stale = age.is_none_or(|s| s > VOTE_STALE_AFTER_S);
+                    latest.vote_account = VoteAccount { stale, ..prev };
+                }
                 None => errors.push("vote-account: not available".to_string()),
             }
         }
@@ -436,24 +454,29 @@ Incremental Snapshot Slot: 420608053"
     }
 
     #[test]
-    fn vote_account_fills_then_carries_forward_stale() {
+    fn vote_account_carries_forward_fresh_then_stale_when_old() {
         let json = r#"{"credits":2218603,"commission":100,
             "epochVotingHistory":[{"epoch":986,"slotsInEpoch":432000,"creditsEarned":978616,"maxCreditsPerSlot":16}]}"#;
         let fresh = Inputs {
             vote_account_json: Some(json.to_string()),
             ..Inputs::new()
         };
-        let c0 = build_snapshot(&fresh, now(), None);
+        let t0: DateTime<Utc> = "2026-07-08T00:00:00Z".parse().unwrap();
+        let c0 = build_snapshot(&fresh, t0, None);
         assert!(!c0.latest.vote_account.stale);
         assert_eq!(c0.latest.vote_account.credits_lifetime, Some(2218603));
-        assert!(c0.latest.vote_account.fetched_at.is_some());
 
-        // Next cycle with no fresh fetch: carry the value forward, marked stale.
-        let none = Inputs::new();
-        let c1 = build_snapshot(&none, now(), Some(&c0.new_state));
-        assert!(c1.latest.vote_account.stale);
-        assert_eq!(c1.latest.vote_account.credits_lifetime, Some(2218603));
+        // +2 min, no fresh fetch: carry forward, still fresh (within cadence).
+        let t1: DateTime<Utc> = "2026-07-08T00:02:00Z".parse().unwrap();
+        let c1 = build_snapshot(&Inputs::new(), t1, Some(&c0.new_state));
+        assert!(!c1.latest.vote_account.stale);
         assert_eq!(c1.latest.vote_account.fetched_at, c0.latest.vote_account.fetched_at);
+
+        // +15 min with still no fetch: now genuinely stale.
+        let t2: DateTime<Utc> = "2026-07-08T00:15:00Z".parse().unwrap();
+        let c2 = build_snapshot(&Inputs::new(), t2, Some(&c1.new_state));
+        assert!(c2.latest.vote_account.stale);
+        assert_eq!(c2.latest.vote_account.credits_lifetime, Some(2218603));
     }
 
     #[test]
