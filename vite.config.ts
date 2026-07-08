@@ -10,6 +10,11 @@ import { resolve } from 'node:path'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
+    // ECharts is a deliberate ~520kB chunk, code-split behind React.lazy so it loads on
+    // demand (charts are below the fold) and never touches the landing page. That is the
+    // real optimization; raise the size-warning ceiling above it so the expected large
+    // vendor chunk does not flag every build.
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       input: {
         main: resolve(import.meta.dirname, 'index.html'),

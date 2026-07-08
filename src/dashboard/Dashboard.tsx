@@ -20,9 +20,14 @@ import { EpochCard } from "./components/EpochCard";
 import { SystemStrip } from "./components/SystemStrip";
 import { VoteCredits } from "./components/VoteCredits";
 import { EventFeed } from "./components/EventFeed";
-import { TimeSeriesChart } from "./charts/TimeSeriesChart";
-import { CHART } from "./charts/echarts";
+import { lazy, Suspense } from "react";
+import { CHART } from "./charts/palette";
 import history1h from "./fixtures/history-1h.json";
+
+// ECharts loads on demand (below the fold) so it stays out of the eager dashboard chunk.
+const TimeSeriesChart = lazy(() =>
+  import("./charts/TimeSeriesChart").then((m) => ({ default: m.TimeSeriesChart })),
+);
 
 const container = "relative z-10 mx-auto max-w-[1100px] px-6";
 const sectionLabel = "mb-3 font-mono text-[11px] tracking-[0.16em] text-ink-muted";
@@ -202,6 +207,9 @@ export default function Dashboard() {
         {/* History */}
         <section className="mt-10">
           <p className={sectionLabel}>LAST HOUR</p>
+          <Suspense
+            fallback={<div className="h-64 rounded-xl border border-accent/12 bg-surface/60" />}
+          >
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
             <div className="rounded-xl border border-accent/12 bg-surface/60 p-4 lg:col-span-3">
               <p className="mb-1 text-[13px] text-ink-secondary">
@@ -242,6 +250,7 @@ export default function Dashboard() {
               />
             </div>
           </div>
+          </Suspense>
         </section>
 
         {/* Voting performance */}

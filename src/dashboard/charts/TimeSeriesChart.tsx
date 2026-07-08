@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { EChartsType } from "echarts/core";
-import { echarts, CHART, prefersReducedMotion } from "./echarts";
+import { echarts } from "./echarts";
+import { CHART, prefersReducedMotion } from "./palette";
 
 export interface ChartSeries {
   name: string;
