@@ -1,18 +1,25 @@
 //! Redact secrets from free-text before it enters the snapshot JSON (issue #12).
 //!
 //! The box's raw logs and error strings carry host paths, IPs, sockets, peer gossip
-//! addresses, and keypair-file locations. None of that may leave the box or land in a
-//! committed fixture. This module is the single choke point: any free-text string
-//! (`errors[]`, `events[].msg`, captured fixtures) passes through a `Redactor` first.
+//! addresses, URLs, and keypair-file locations. None of that may leave the box or land in
+//! a committed fixture. This module is the single choke point: any free-text string
+//! (`events[].msg`, `errors[]`, captured fixtures) passes through a `Redactor` first.
 //!
-//! Whitelist: the validator's own two public pubkeys (identity + vote) are on-chain and
-//! safe, so they survive; every other base58 blob is treated as a peer pubkey / keypair
-//! reference and replaced. Pure, no I/O. A miss redacts too much, never too little.
+//! Two guards:
+//! - `is_denylisted` drops a whole line that names an obviously sensitive location
+//!   (`/home/`, keypair files, an IP:port) — belt-and-braces before redaction runs.
+//! - `redact` replaces every path / IP / socket / URL / non-whitelisted base58 pubkey with
+//!   `[redacted]`. The node's own two pubkeys (identity + vote) are on-chain and survive.
+//!
+//! Pure, no I/O. A miss redacts too much, never too little. `[redacted]` contains no
+//! redactable token, so redaction is idempotent.
 
 use std::collections::HashSet;
 use std::sync::OnceLock;
 
 use regex::Regex;
+
+const PLACEHOLDER: &str = "[redacted]";
 
 /// Redacts secrets from text, keeping only whitelisted base58 pubkeys.
 #[derive(Debug, Clone)]
@@ -20,8 +27,12 @@ pub struct Redactor {
     whitelist: HashSet<String>,
 }
 
-// Compiled once, reused across every `redact` call. Order of application matters
-// (see `redact`), so each pattern is kept separate rather than alternated.
+// Compiled once, reused across every call. Application order matters (see `redact`).
+fn url_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"[a-zA-Z][a-zA-Z0-9+.-]*://\S+").unwrap())
+}
+
 fn path_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     // An absolute unix path with >=2 segments: /home/sol/validator-keypair.json.
@@ -68,21 +79,31 @@ impl Redactor {
         }
     }
 
-    /// Return `text` with paths, IPs, sockets, and non-whitelisted pubkeys replaced by
-    /// placeholders. Idempotent: the placeholders themselves contain no redactable tokens.
+    /// True if the whole line should be dropped rather than redacted: it names a home
+    /// directory, a keypair file, or an IP:port. Cheaper and stricter than trusting
+    /// redaction to catch every shape.
+    pub fn is_denylisted(&self, line: &str) -> bool {
+        line.contains("/home/")
+            || line.contains("identity.json")
+            || line.contains("vote-account.json")
+            || socket_re().is_match(line)
+    }
+
+    /// Return `text` with URLs, paths, IPs, sockets, and non-whitelisted pubkeys replaced
+    /// by `[redacted]`. URLs first (they embed `//host/path` the path rule would half-eat);
+    /// then sockets before bare IPs so the port goes too.
     pub fn redact(&self, text: &str) -> String {
-        // Paths first: a keypair path may embed a base58 basename, and the path rule
-        // should claim the whole span. Then sockets before bare IPs so the port goes too.
-        let out = path_re().replace_all(text, "<path>");
-        let out = socket_re().replace_all(&out, "<socket>");
-        let out = ipv4_re().replace_all(&out, "<ip>");
-        let out = ipv6_re().replace_all(&out, "<ip>");
+        let out = url_re().replace_all(text, PLACEHOLDER);
+        let out = path_re().replace_all(&out, PLACEHOLDER);
+        let out = socket_re().replace_all(&out, PLACEHOLDER);
+        let out = ipv4_re().replace_all(&out, PLACEHOLDER);
+        let out = ipv6_re().replace_all(&out, PLACEHOLDER);
         let out = base58_re().replace_all(&out, |caps: &regex::Captures| {
             let m = &caps[0];
             if self.whitelist.contains(m) {
                 m.to_string()
             } else {
-                "<pubkey>".to_string()
+                PLACEHOLDER.to_string()
             }
         });
         out.into_owned()
@@ -99,50 +120,47 @@ mod tests {
     }
 
     #[test]
-    fn strips_paths() {
+    fn strips_paths_ips_urls() {
         let r = redactor();
+        assert_eq!(r.redact("read /mnt/ledger/x failed"), "read [redacted] failed");
+        assert_eq!(r.redact("bind 192.168.1.5"), "bind [redacted]");
+        assert_eq!(r.redact("peer 10.0.0.1:8001 up"), "peer [redacted] up");
         assert_eq!(
-            r.redact("failed to read /home/sol/validator-keypair.json"),
-            "failed to read <path>"
+            r.redact("GET https://api.testnet.solana.com/x now"),
+            "GET [redacted] now"
         );
-        assert_eq!(r.redact("--ledger /mnt/ledger monitor"), "--ledger <path> monitor");
-    }
-
-    #[test]
-    fn strips_ips_and_sockets() {
-        let r = redactor();
-        assert_eq!(r.redact("peer 10.0.0.1:8001 gossiping"), "peer <socket> gossiping");
-        assert_eq!(r.redact("bind 192.168.1.5"), "bind <ip>");
     }
 
     #[test]
     fn keeps_whitelisted_pubkeys_redacts_others() {
         let r = redactor();
-        // own identity + vote survive
         assert_eq!(r.redact(IDENTITY_PUBKEY), IDENTITY_PUBKEY);
         assert_eq!(r.redact(VOTE_PUBKEY), VOTE_PUBKEY);
-        // a foreign peer pubkey is stripped, even mid-sentence
         let foreign = "So11111111111111111111111111111111111111112";
-        assert_eq!(r.redact(&format!("peer {foreign} joined")), "peer <pubkey> joined");
+        assert_eq!(r.redact(&format!("peer {foreign} joined")), "peer [redacted] joined");
     }
 
     #[test]
     fn leaves_ordinary_prose_and_timestamps_alone() {
         let r = redactor();
-        let s = "[2026-07-08T09:59:07.314Z INFO] tower-vote latest=420559488i and/or done";
+        let s = "tower-vote latest=420559488i and/or done at 12:34:56";
         assert_eq!(r.redact(s), s);
     }
 
     #[test]
-    fn empty_whitelist_redacts_all_pubkeys() {
-        let r = Redactor::new(Vec::<String>::new());
-        assert_eq!(r.redact(IDENTITY_PUBKEY), "<pubkey>");
+    fn denylist_catches_home_keypairs_and_sockets() {
+        let r = redactor();
+        assert!(r.is_denylisted("loaded /home/sol/x"));
+        assert!(r.is_denylisted("reading identity.json"));
+        assert!(r.is_denylisted("reading vote-account.json"));
+        assert!(r.is_denylisted("dial 10.0.0.1:8001"));
+        assert!(!r.is_denylisted("everything fine here"));
     }
 
     #[test]
     fn is_idempotent() {
         let r = redactor();
-        let once = r.redact("peer 10.0.0.1:8001 at /home/sol/id.json");
+        let once = r.redact("peer 10.0.0.1:8001 at /mnt/ledger/id.json via https://x/y");
         assert_eq!(r.redact(&once), once);
     }
 }

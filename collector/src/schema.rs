@@ -9,9 +9,16 @@
 //! source-unfilled field stays present-and-null in the output, as the contract requires.
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value as Json;
 
 pub const SCHEMA_VERSION: u32 = 1;
+
+/// A redacted log event for the feed (issue #12). Mirrors `RawEvent` in types.ts.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Event {
+    pub ts: Option<String>,
+    pub level: Option<String>,
+    pub msg: Option<String>,
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Disk {
@@ -99,7 +106,7 @@ pub struct Latest {
     pub fork_weight: Option<f64>,
     pub system: System,
     pub vote_account: VoteAccount,
-    pub events: Vec<Json>,
+    pub events: Vec<Event>,
     pub errors: Vec<String>,
 }
 

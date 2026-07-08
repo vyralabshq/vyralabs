@@ -15,6 +15,7 @@ use serde_json::{Map, Value as Json};
 
 use crate::datapoints::{latest_datapoint, Value};
 use crate::derive::{drop_rate_pct, vote_lag};
+use crate::event::build_events;
 use crate::monitor::parse_monitor;
 use crate::redact::Redactor;
 use crate::schema::{empty_history, empty_latest, History, HistoryPoint, Latest};
@@ -98,6 +99,19 @@ pub fn build_snapshot(
             empty.as_slice()
         }
     };
+
+    // The redactor is the single sanitization choke point (issue #12): the node's own two
+    // pubkeys are the whitelist, everything else that looks sensitive is scrubbed. Used for
+    // both the event feed and the shipped errors[].
+    let redactor = Redactor::new(
+        [&inputs.identity_pubkey, &inputs.vote_pubkey]
+            .into_iter()
+            .flatten()
+            .cloned(),
+    );
+
+    // Redacted event feed from the same log lines (issue #12).
+    latest.events = build_events(lines, &redactor);
 
     // Fetch a named datapoint, recording a not-found error when absent.
     let mut require = |name: &str| -> Option<HashMap<String, Value>> {
@@ -193,16 +207,8 @@ pub fn build_snapshot(
         H24_WINDOW_S,
     );
 
-    // Sanitize every free-text string before it ships (issue #12). Collector-generated
-    // errors carry no secrets today, but I/O sources (#10, #11) will surface paths and
-    // peer addresses, so redaction lives at the seam, not per-source. The node's own two
-    // pubkeys are the whitelist.
-    let redactor = Redactor::new(
-        [&inputs.identity_pubkey, &inputs.vote_pubkey]
-            .into_iter()
-            .flatten()
-            .cloned(),
-    );
+    // Collector-generated errors carry no secrets today, but I/O sources (#10, #11) will
+    // surface paths and peer addresses, so errors[] pass through the same redactor (#12).
     let errors: Vec<String> = errors.iter().map(|e| redactor.redact(e)).collect();
 
     latest.errors = errors.clone();
