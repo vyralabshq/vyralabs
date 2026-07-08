@@ -52,6 +52,18 @@ pub fn parse_epoch_info(json: &str) -> Option<EpochInfo> {
     })
 }
 
+/// Map `getVoteAccounts` -> activated stake in SOL for our vote account (the only field
+/// `solana vote-account` omits). Looks in `current` then `delinquent`. Absent -> None.
+pub fn parse_activated_stake(json: &str) -> Option<f64> {
+    let v: Value = serde_json::from_str(json).ok()?;
+    let r = &v["result"];
+    let acc = r["current"]
+        .as_array()
+        .and_then(|a| a.first())
+        .or_else(|| r["delinquent"].as_array().and_then(|a| a.first()))?;
+    acc["activatedStake"].as_u64().map(|l| l as f64 / 1e9)
+}
+
 /// Map `getBalance.result.value` (lamports) -> SOL. Absent/unparseable -> None.
 pub fn parse_balance(json: &str) -> Option<f64> {
     let v: Value = serde_json::from_str(json).ok()?;

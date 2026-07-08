@@ -11,13 +11,39 @@
 //! monitor.txt`); omitted sources become null fields + errors[] entries, never a failure.
 
 use std::path::{Path, PathBuf};
-use std::process::ExitCode;
+use std::process::{Command, ExitCode};
 
 use chrono::Utc;
 
-use collector::config::{CLUSTER, IDENTITY_PUBKEY, IS_JITO_CLIENT, VOTE_PUBKEY};
+use collector::config::{
+    ACCOUNTS_PATH, CLUSTER, IDENTITY_PUBKEY, IS_JITO_CLIENT, LEDGER_PATH, SERVICE_NAME, VOTE_PUBKEY,
+};
+use collector::osstats::OsStatsInput;
 use collector::state::{load_state, save_state};
 use collector::{build_snapshot, Inputs};
+
+/// Run a command, returning stdout on success (exit 0), else None. Local reads only.
+fn run(cmd: &str, args: &[&str]) -> Option<String> {
+    let out = Command::new(cmd).args(args).output().ok()?;
+    out.status
+        .success()
+        .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
+}
+
+/// Gather OS stats by running local commands / reading /proc. Each field independent;
+/// anything unavailable (e.g. on non-Linux dev) is simply None. This is the local half of
+/// the fetch shell; the network sources + daemon loop are #14.
+fn gather_os_stats() -> OsStatsInput {
+    OsStatsInput {
+        df_ledger: run("df", &["-B1", LEDGER_PATH]),
+        df_accounts: run("df", &["-B1", ACCOUNTS_PATH]),
+        meminfo: std::fs::read_to_string("/proc/meminfo").ok(),
+        loadavg: std::fs::read_to_string("/proc/loadavg").ok(),
+        nproc: run("nproc", &[]),
+        active_enter: run("systemctl", &["show", SERVICE_NAME, "-p", "ActiveEnterTimestamp"]),
+        is_active: run("systemctl", &["is-active", SERVICE_NAME]),
+    }
+}
 
 /// Value following `flag` in the args, if present (`--flag value`).
 fn flag_value(args: &[String], flag: &str) -> Option<String> {
@@ -60,9 +86,9 @@ fn run_once(args: &[String]) -> ExitCode {
         rpc_version: read_file("--rpc-version"),
         rpc_balance: read_file("--rpc-balance"),
         jito_client: Some(IS_JITO_CLIENT),
-        // OS stats are gathered live by the daemon (#14); the --once dry-run leaves them null.
-        os_stats: None,
+        os_stats: Some(gather_os_stats()),
         vote_account_json: read_file("--vote-account"),
+        vote_accounts_json: read_file("--get-vote-accounts"),
         identity_pubkey: Some(IDENTITY_PUBKEY.to_string()),
         vote_pubkey: Some(VOTE_PUBKEY.to_string()),
         cluster: CLUSTER.to_string(),
