@@ -18,9 +18,8 @@ Environment=PATH=/home/sol/.local/share/solana/install/active_release/bin:/usr/l
 Environment=OUT_DIR=/dev/shm/collector
 Environment=STATE_PATH=/dev/shm/collector/state.json
 Environment=RPC_URL=http://localhost:8899
-# If the validator writes metrics datapoints to a log FILE, set it here; otherwise the
-# collector reads them from `journalctl -u sol.service`.
-# Environment=LOG_FILE=/mnt/ledger/validator.log
+# The validator logs metrics datapoints to this file (--log in start-testnet.sh).
+Environment=LOG_FILE=/home/sol/logs/solana-validator.log
 
 ExecStart=/home/sol/vyralabs/collector/target/release/collector --daemon
 Restart=on-failure
