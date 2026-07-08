@@ -7,6 +7,7 @@ import {
   journal,
   footer,
 } from "./content";
+import { NetworkMenu } from "./NetworkMenu";
 
 const container = "relative z-10 mx-auto max-w-[760px] px-6";
 const eyebrow = "font-mono text-xs tracking-[0.18em] text-accent mb-[18px]";
@@ -35,7 +36,8 @@ function App() {
             v<span className="text-accent">y</span>ra
           </span>
         </a>
-        <nav className="flex gap-5.5 font-mono text-[13px] text-ink-secondary">
+        <nav className="flex items-center gap-5.5 font-mono text-[13px] text-ink-secondary">
+          <NetworkMenu navLink={navLink} />
           <a className={navLink} href={links.github} target="_blank" rel="noreferrer">
             GitHub
           </a>
