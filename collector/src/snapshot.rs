@@ -17,8 +17,10 @@ use crate::datapoints::{latest_datapoint, Value};
 use crate::derive::{drop_rate_pct, vote_lag};
 use crate::event::build_events;
 use crate::monitor::parse_monitor;
+use crate::osstats::{parse_os_stats, OsStatsInput};
 use crate::redact::Redactor;
-use crate::schema::{empty_history, empty_latest, History, HistoryPoint, Latest};
+use crate::schema::{empty_history, empty_latest, History, HistoryPoint, Latest, VoteAccount};
+use crate::voteaccount::parse_vote_account;
 use crate::window::roll;
 
 // History window cadence (append interval) and retention span, per docs/dashboard.md:
@@ -44,6 +46,10 @@ pub struct Inputs {
     pub log_lines: Option<Vec<String>>,
     /// Raw `agave-validator monitor` output (issue #10).
     pub monitor_output: Option<String>,
+    /// Captured OS-stat command outputs (issue #11, Source D).
+    pub os_stats: Option<OsStatsInput>,
+    /// Raw `solana vote-account --output json` (issue #11, Source E).
+    pub vote_account_json: Option<String>,
     pub identity_pubkey: Option<String>,
     pub vote_pubkey: Option<String>,
     pub cluster: String,
@@ -173,6 +179,47 @@ pub fn build_snapshot(
         None => errors.push("monitor: no output available".to_string()),
     }
 
+    // OS stats (issue #11, Source D): each reading independent, missing -> null field.
+    match &inputs.os_stats {
+        Some(os) => {
+            let st = parse_os_stats(os, now);
+            latest.system.ledger_disk = st.ledger_disk;
+            latest.system.accounts_disk = st.accounts_disk;
+            latest.system.memory = st.memory;
+            latest.system.load_avg = st.load_avg;
+            latest.system.cpu_cores = st.cpu_cores;
+            latest.system.uptime_seconds = st.uptime_seconds;
+            latest.system.process_active = st.process_active;
+        }
+        None => errors.push("os stats: not available".to_string()),
+    }
+
+    // Vote account (issue #11, Source E): on a fresh fetch, stamp fetched_at = now. When
+    // absent, carry the previous good value from state and mark it stale, so the panel dims
+    // instead of emptying. The 5-minute fetch gate lives in the I/O shell (#14).
+    match inputs.vote_account_json.as_deref().map(parse_vote_account) {
+        Some(Some(d)) => {
+            latest.vote_account = VoteAccount {
+                stale: false,
+                fetched_at: Some(generated_at.clone()),
+                credits_lifetime: d.credits_lifetime,
+                commission_pct: d.commission_pct,
+                activated_stake_sol: d.activated_stake_sol,
+                epoch_credits: d.epoch_credits,
+            };
+        }
+        Some(None) => errors.push("vote-account: unparseable json".to_string()),
+        None => {
+            match prev_state
+                .and_then(|s| s.get("vote_account"))
+                .and_then(|v| serde_json::from_value::<VoteAccount>(v.clone()).ok())
+            {
+                Some(prev) => latest.vote_account = VoteAccount { stale: true, ..prev },
+                None => errors.push("vote-account: not available".to_string()),
+            }
+        }
+    }
+
     // The current point carries the datapoint -> derived values for this cycle.
     let point = HistoryPoint {
         t: generated_at.clone(),
@@ -222,6 +269,11 @@ pub fn build_snapshot(
     new_state.insert(
         STATE_H24.into(),
         serde_json::to_value(&history_24h.points).unwrap(),
+    );
+    // Keep the vote account so a cycle with no fresh fetch can carry it forward (#11).
+    new_state.insert(
+        "vote_account".into(),
+        serde_json::to_value(&latest.vote_account).unwrap(),
     );
 
     SnapshotResult {
@@ -294,6 +346,43 @@ Incremental Snapshot Slot: 420608053"
         let out = build_snapshot(&inputs, now(), None);
         assert_eq!(out.latest.slots.confirmed, Some(99));
         assert_eq!(out.latest.slots.finalized, Some(999));
+    }
+
+    #[test]
+    fn os_stats_fill_system_and_history_mem_pct() {
+        let inputs = Inputs {
+            os_stats: Some(crate::osstats::OsStatsInput {
+                meminfo: Some("MemTotal: 100 kB\nMemAvailable: 25 kB\n".to_string()),
+                loadavg: Some("6.42 6.01 5.67 2/1013 70431".to_string()),
+                ..Default::default()
+            }),
+            ..Inputs::new()
+        };
+        let out = build_snapshot(&inputs, now(), None);
+        assert_eq!(out.latest.system.memory.pct, Some(75.0));
+        assert_eq!(out.latest.system.load_avg, Some(vec![6.42, 6.01, 5.67]));
+        assert_eq!(out.history_1h.points[0].mem_pct, Some(75.0));
+    }
+
+    #[test]
+    fn vote_account_fills_then_carries_forward_stale() {
+        let json = r#"{"credits":2218603,"commission":100,
+            "epochVotingHistory":[{"epoch":986,"slotsInEpoch":432000,"creditsEarned":978616,"maxCreditsPerSlot":16}]}"#;
+        let fresh = Inputs {
+            vote_account_json: Some(json.to_string()),
+            ..Inputs::new()
+        };
+        let c0 = build_snapshot(&fresh, now(), None);
+        assert!(!c0.latest.vote_account.stale);
+        assert_eq!(c0.latest.vote_account.credits_lifetime, Some(2218603));
+        assert!(c0.latest.vote_account.fetched_at.is_some());
+
+        // Next cycle with no fresh fetch: carry the value forward, marked stale.
+        let none = Inputs::new();
+        let c1 = build_snapshot(&none, now(), Some(&c0.new_state));
+        assert!(c1.latest.vote_account.stale);
+        assert_eq!(c1.latest.vote_account.credits_lifetime, Some(2218603));
+        assert_eq!(c1.latest.vote_account.fetched_at, c0.latest.vote_account.fetched_at);
     }
 
     #[test]

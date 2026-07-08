@@ -73,20 +73,29 @@ pub struct System {
     pub ledger_disk: Disk,
     pub accounts_disk: Disk,
     pub memory: Disk,
-    pub load_avg: Option<f64>,
+    /// [1, 5, 15]-minute load averages, or null. Mirrors `load_avg: number[] | null`.
+    pub load_avg: Option<Vec<f64>>,
     pub cpu_cores: Option<i64>,
     pub uptime_seconds: Option<i64>,
     pub process_active: Option<bool>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+/// Per-epoch vote credits. Mirrors `RawEpochCredit` in types.ts.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EpochCredit {
+    pub epoch: Option<i64>,
+    pub credits: Option<i64>,
+    pub max: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VoteAccount {
     pub stale: bool,
     pub fetched_at: Option<String>,
     pub credits_lifetime: Option<i64>,
     pub commission_pct: Option<f64>,
     pub activated_stake_sol: Option<f64>,
-    pub epoch_credits: Option<i64>,
+    pub epoch_credits: Option<Vec<EpochCredit>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
