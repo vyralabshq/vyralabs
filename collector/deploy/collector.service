@@ -1,0 +1,32 @@
+[Unit]
+Description=Vyra validator status collector
+# Start after networking and the validator itself.
+After=network-online.target sol.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=sol
+WorkingDirectory=/home/sol/vyralabs/collector
+
+# The collector shells out to solana / agave-validator / curl / df / nproc / systemctl /
+# journalctl. systemd gives a minimal PATH, so point it at where those live.
+# Check on the box: `which solana agave-validator curl` and adjust.
+Environment=PATH=/home/sol/.local/share/solana/install/active_release/bin:/usr/local/bin:/usr/bin:/bin
+
+# Output + state to tmpfs (RAM) so the validator's SSDs are never touched.
+Environment=OUT_DIR=/dev/shm/collector
+Environment=STATE_PATH=/dev/shm/collector/state.json
+Environment=RPC_URL=http://localhost:8899
+# If the validator writes metrics datapoints to a log FILE, set it here; otherwise the
+# collector reads them from `journalctl -u sol.service`.
+# Environment=LOG_FILE=/mnt/ledger/validator.log
+
+ExecStart=/home/sol/vyralabs/collector/target/release/collector --daemon
+Restart=on-failure
+RestartSec=5
+# Stay out of the validator's way.
+Nice=15
+
+[Install]
+WantedBy=multi-user.target
