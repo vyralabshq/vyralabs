@@ -3,7 +3,7 @@
 One doc for the `/dashboard` feature: the data contract, the words we use, and why it is
 built this way. The JSON schema below is the single source of truth shared by the
 frontend types (`src/dashboard/types.ts`) and, later, the collector
-(`collector/schema.py`). Edit both sides together when it changes. `schema_version` is `1`.
+(`collector/src/schema.rs`). Edit both sides together when it changes. `schema_version` is `1`.
 
 ## Why static JSON, not a metrics backend
 
@@ -52,7 +52,7 @@ datapoint: replay-slot-stats slot=420000000i total_transactions=464i
 `fork_weight` is a 0 to 1 fraction. The most-recent line is often the fresh tip slot with a
 tiny weight, so "fork health %" should track the fork the node actually voted (align
 `bank_weight.slot` with the latest `tower-vote.latest`). Pin the exact rule at #9 against
-real logs. When #9 to #11 land, capture real source outputs on the box as local pytest
+real logs. When #9 to #11 land, capture real source outputs on the box as local `cargo test`
 fixtures; never commit host paths, IPs, sockets, peer addresses, or keypair locations
 (the redactor at #12 exists because raw logs carry those).
 
@@ -81,66 +81,90 @@ the two sides can never disagree.
   "identity_pubkey": "<base58>",
   "vote_pubkey": "<base58>",
 
-  "health": { "rpc": "ok" },              // Node Healthy = rpc === "ok"
+  "health": { "rpc": "ok" }, // Node Healthy = rpc === "ok"
   "version": { "version": "2.2.14", "jito": true },
 
   "slots": {
-    "processed": 0, "confirmed": 0, "finalized": 0,
-    "full_snapshot": 0, "incremental_snapshot": 0, "network_tx_total": 0
+    "processed": 0,
+    "confirmed": 0,
+    "finalized": 0,
+    "full_snapshot": 0,
+    "incremental_snapshot": 0,
+    "network_tx_total": 0,
   },
   "identity_balance_sol": 0.0,
 
   "epoch": {
-    "epoch": 0, "slot_index": 0, "slots_in_epoch": 432000,
-    "absolute_slot": 0, "block_height": 0
+    "epoch": 0,
+    "slot_index": 0,
+    "slots_in_epoch": 432000,
+    "absolute_slot": 0,
+    "block_height": 0,
   },
 
-  "vote": { "latest": 0, "root": 0 },          // from tower-vote
+  "vote": { "latest": 0, "root": 0 }, // from tower-vote
   "block_production": { "produced": 0, "dropped": 0 }, // num_blocks_on_fork / num_dropped_blocks_on_fork
-  "fork_weight": 0.95,                          // raw 0-1 fraction from bank_weight
+  "fork_weight": 0.95, // raw 0-1 fraction from bank_weight
 
   "system": {
-    "ledger_disk":   { "pct": 0.0, "used_gb": 0.0, "total_gb": 0.0 },
+    "ledger_disk": { "pct": 0.0, "used_gb": 0.0, "total_gb": 0.0 },
     "accounts_disk": { "pct": 0.0, "used_gb": 0.0, "total_gb": 0.0 },
-    "memory":        { "pct": 0.0, "used_gb": 0.0, "total_gb": 0.0 },
-    "load_avg": [0.0, 0.0, 0.0],                // 1 / 5 / 15 min
+    "memory": { "pct": 0.0, "used_gb": 0.0, "total_gb": 0.0 },
+    "load_avg": [0.0, 0.0, 0.0], // 1 / 5 / 15 min
     "cpu_cores": 0,
     "uptime_seconds": 0,
-    "process_active": true
+    "process_active": true,
   },
 
   "vote_account": {
     "stale": false,
-    "fetched_at": "2026-07-08T12:30:00Z",       // own 5-min cadence
+    "fetched_at": "2026-07-08T12:30:00Z", // own 5-min cadence
     "credits_lifetime": 0,
-    "commission_pct": 100,                       // testnet config, not economic
+    "commission_pct": 100, // testnet config, not economic
     "activated_stake_sol": 0.0,
-    "epoch_credits": [ { "epoch": 0, "credits": 0, "max": 0 } ]
+    "epoch_credits": [{ "epoch": 0, "credits": 0, "max": 0 }],
   },
 
-  "events": [ { "ts": "2026-07-08T12:34:00Z", "level": "WARN", "msg": "redacted" } ],
-  "errors": []                                   // which sources failed this Cycle
+  "events": [
+    { "ts": "2026-07-08T12:34:00Z", "level": "WARN", "msg": "redacted" },
+  ],
+  "errors": [], // which sources failed this Cycle
 }
 ```
 
 Status pills: Node Healthy (`health.rpc === "ok"`), Process Active (`system.process_active`),
 Jito Active (`version.jito`).
 
+Field sources (verified against the box):
+
+- `agave-validator --ledger <path> monitor` gives only the five slot numbers
+  (`processed`, `confirmed`, `finalized`, `full_snapshot`, `incremental_snapshot`). Its
+  leading `HH:MM:SS` is the monitor process's own runtime, not node uptime, and is ignored.
+- `network_tx_total` comes from `getEpochInfo.transactionCount`, `identity_balance_sol` from
+  `getBalance(identity)` (both cheap localhost RPC), not from monitor.
+- `block_height`, `epoch`, health and version come from RPC / log datapoints; `uptime_seconds`
+  from `systemctl`.
+
 ### `history-1h.json` / `history-24h.json`
 
 ```jsonc
 {
   "schema_version": 1,
-  "window": "1h",                // or "24h"
-  "resolution_seconds": 10,      // 10 for 1h (~360 pts), 60 for 24h (~1440 pts)
+  "window": "1h", // or "24h"
+  "resolution_seconds": 10, // 10 for 1h (~360 pts), 60 for 24h (~1440 pts)
   "generated_at": "2026-07-08T12:34:56Z",
   "points": [
     {
       "t": "2026-07-08T12:34:56Z",
-      "processed": 0, "finalized": 0, "vote_lag": 0,
-      "identity_sol": 0.0, "mem_pct": 0.0, "tx_per_slot": 0.0, "drop_rate_pct": 0.0
-    }
-  ]
+      "processed": 0,
+      "finalized": 0,
+      "vote_lag": 0,
+      "identity_sol": 0.0,
+      "mem_pct": 0.0,
+      "tx_per_slot": 0.0,
+      "drop_rate_pct": 0.0,
+    },
+  ],
 }
 ```
 
@@ -151,7 +175,7 @@ Any point field may be `null`; charts tolerate gaps.
 - Frontend: `parseSnapshot(raw, now)` and `parseHistory(raw)`. Pure, `now`-injected, never
   throw. The only tested frontend surface.
 - Collector: `build_snapshot(inputs, now, prev_state)` and the pure parsers/redactor/window
-  manager below it. The I/O shell (fetchers, boto3 upload, loop) is thin and injected.
+  manager below it. The I/O shell (fetchers, S3 upload, loop) is thin and injected.
 
 ## Delivery
 
