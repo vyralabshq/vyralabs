@@ -131,14 +131,18 @@ export function VoteCredits({
         {epochCredits.length === 0 ? (
           <Missing />
         ) : (
-          epochCredits.map((c, i) => (
-            <CreditRow
-              key={c.epoch ?? i}
-              c={c}
-              currentEpoch={currentEpoch}
-              progressPct={progressPct}
-            />
-          ))
+          // Newest epoch on top.
+          epochCredits
+            .map((c, i) => ({ c, i }))
+            .reverse()
+            .map(({ c, i }) => (
+              <CreditRow
+                key={c.epoch ?? i}
+                c={c}
+                currentEpoch={currentEpoch}
+                progressPct={progressPct}
+              />
+            ))
         )}
       </div>
     </div>

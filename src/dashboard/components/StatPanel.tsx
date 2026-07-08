@@ -41,7 +41,7 @@ export function StatPanel({
         {value === null ? (
           <Missing className="mb-1.5" />
         ) : (
-          <span className="font-display text-[26px] font-bold leading-none tracking-[-0.01em] text-ink tabular-nums">
+          <span className="font-display text-[20px] font-bold leading-none tracking-[-0.01em] text-ink tabular-nums sm:text-[26px]">
             {value}
           </span>
         )}
