@@ -14,8 +14,8 @@ pub const CLUSTER: &str = "testnet";
 // marker, so RPC can't detect it). This validator is jito, so the Jito pill is true.
 pub const IS_JITO_CLIENT: bool = true;
 
-// Host paths for OS-stat gathering. On this box ledger and accounts share one nvme
-// (both /mnt/ledger and / resolve to /dev/nvme0n1p2). #14 makes these .env-overridable.
+// Host paths for OS-stat gathering. Two separate NVMe drives on this box:
+// ledger dir lives on / (nvme0n1p2), accounts on its own disk (nvme1n1 -> /mnt/accounts).
 pub const LEDGER_PATH: &str = "/mnt/ledger";
-pub const ACCOUNTS_PATH: &str = "/mnt/ledger";
+pub const ACCOUNTS_PATH: &str = "/mnt/accounts";
 pub const SERVICE_NAME: &str = "sol.service";
