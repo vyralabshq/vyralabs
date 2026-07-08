@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-08T10:00:00Z",
+  "cluster": "testnet",
+  "identity_pubkey": "vyRa8J7ULHfUAdnkTHP3YGhcLWaLURXLmD7CiZkMzWg",
+  "vote_pubkey": "9LjQ5UC1gyebUySAbodzHJdLSkYAYgVeQcr2vv6FZP6E",
+  "health": null,
+  "version": null,
+  "slots": {
+    "processed": null,
+    "confirmed": null,
+    "finalized": null,
+    "full_snapshot": null,
+    "incremental_snapshot": null,
+    "network_tx_total": null
+  },
+  "identity_balance_sol": null,
+  "epoch": {
+    "epoch": null,
+    "slot_index": null,
+    "slots_in_epoch": null,
+    "absolute_slot": null,
+    "block_height": null
+  },
+  "vote": { "latest": null, "root": null },
+  "block_production": { "produced": null, "dropped": null },
+  "fork_weight": null,
+  "system": {
+    "ledger_disk": { "pct": null, "used_gb": null, "total_gb": null },
+    "accounts_disk": { "pct": null, "used_gb": null, "total_gb": null },
+    "memory": { "pct": null, "used_gb": null, "total_gb": null },
+    "load_avg": null,
+    "cpu_cores": null,
+    "uptime_seconds": null,
+    "process_active": null
+  },
+  "vote_account": {
+    "stale": true,
+    "fetched_at": null,
+    "credits_lifetime": null,
+    "commission_pct": null,
+    "activated_stake_sol": null,
+    "epoch_credits": null
+  },
+  "events": [],
+  "errors": [
+    "monitor: subprocess timed out after 5s",
+    "rpc: getHealth connection refused",
+    "system: /proc/meminfo read failed",
+    "vote_account: getVoteAccounts request timed out"
+  ]
+}

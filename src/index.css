@@ -10,6 +10,10 @@
   --color-accent: #f77f1b;
   --color-accent-bright: #ffa033;
 
+  /* Status tones (dashboard only): warm-muted so they sit inside the palette */
+  --color-ok: #6bbf7e;
+  --color-down: #e0705f;
+
   /* Text */
   --color-ink: #fdf3e8;
   --color-ink-secondary: #b89274;
