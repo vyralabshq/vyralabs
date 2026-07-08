@@ -10,6 +10,7 @@ pub mod event;
 pub mod monitor;
 pub mod osstats;
 pub mod redact;
+pub mod rpc;
 pub mod schema;
 pub mod snapshot;
 pub mod state;

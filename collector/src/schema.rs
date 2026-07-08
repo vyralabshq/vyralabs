@@ -12,6 +12,19 @@ use serde::{Deserialize, Serialize};
 
 pub const SCHEMA_VERSION: u32 = 1;
 
+/// RPC health. Mirrors `health: { rpc } | null`. `rpc == "ok"` drives the Node Healthy pill.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Health {
+    pub rpc: Option<String>,
+}
+
+/// Client version. Mirrors `version: { version, jito } | null`.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Version {
+    pub version: Option<String>,
+    pub jito: Option<bool>,
+}
+
 /// A redacted log event for the feed (issue #12). Mirrors `RawEvent` in types.ts.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Event {
@@ -105,8 +118,8 @@ pub struct Latest {
     pub cluster: String,
     pub identity_pubkey: Option<String>,
     pub vote_pubkey: Option<String>,
-    pub health: Option<String>,
-    pub version: Option<String>,
+    pub health: Option<Health>,
+    pub version: Option<Version>,
     pub slots: Slots,
     pub identity_balance_sol: Option<f64>,
     pub epoch: Epoch,

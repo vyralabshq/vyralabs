@@ -55,6 +55,9 @@ fn run_once(args: &[String]) -> ExitCode {
     let inputs = Inputs {
         log_lines,
         monitor_output: read_file("--monitor"),
+        rpc_health: read_file("--rpc-health"),
+        rpc_epoch_info: read_file("--rpc-epoch"),
+        rpc_version: read_file("--rpc-version"),
         // OS stats are gathered live by the daemon (#14); the --once dry-run leaves them null.
         os_stats: None,
         vote_account_json: read_file("--vote-account"),
