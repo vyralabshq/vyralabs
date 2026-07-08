@@ -19,8 +19,10 @@ use crate::event::build_events;
 use crate::monitor::parse_monitor;
 use crate::osstats::{parse_os_stats, OsStatsInput};
 use crate::redact::Redactor;
-use crate::rpc::{parse_epoch_info, parse_health, parse_version};
-use crate::schema::{empty_history, empty_latest, History, HistoryPoint, Latest, VoteAccount};
+use crate::rpc::{parse_balance, parse_epoch_info, parse_health, parse_version};
+use crate::schema::{
+    empty_history, empty_latest, History, HistoryPoint, Latest, Version, VoteAccount,
+};
 use crate::voteaccount::parse_vote_account;
 use crate::window::roll;
 
@@ -51,6 +53,10 @@ pub struct Inputs {
     pub rpc_health: Option<String>,
     pub rpc_epoch_info: Option<String>,
     pub rpc_version: Option<String>,
+    /// Raw localhost `getBalance` for the identity (issue #10).
+    pub rpc_balance: Option<String>,
+    /// Whether the node runs jito-solana (getVersion can't tell); from config.
+    pub jito_client: Option<bool>,
     /// Captured OS-stat command outputs (issue #11, Source D).
     pub os_stats: Option<OsStatsInput>,
     /// Raw `solana vote-account --output json` (issue #11, Source E).
@@ -204,9 +210,15 @@ pub fn build_snapshot(
         None => errors.push("getEpochInfo: not available".to_string()),
     }
     match inputs.rpc_version.as_deref().map(parse_version) {
-        Some(Some(v)) => latest.version = Some(v),
+        // getVersion has no jito marker; the flag comes from config (issue #10).
+        Some(Some(v)) => latest.version = Some(Version { jito: inputs.jito_client, ..v }),
         Some(None) => errors.push("getVersion: unparseable".to_string()),
         None => errors.push("getVersion: not available".to_string()),
+    }
+    match inputs.rpc_balance.as_deref().map(parse_balance) {
+        Some(Some(sol)) => latest.identity_balance_sol = Some(sol),
+        Some(None) => errors.push("getBalance: unparseable".to_string()),
+        None => errors.push("getBalance: not available".to_string()),
     }
 
     // OS stats (issue #11, Source D): each reading independent, missing -> null field.

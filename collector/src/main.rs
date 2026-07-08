@@ -15,7 +15,7 @@ use std::process::ExitCode;
 
 use chrono::Utc;
 
-use collector::config::{CLUSTER, IDENTITY_PUBKEY, VOTE_PUBKEY};
+use collector::config::{CLUSTER, IDENTITY_PUBKEY, IS_JITO_CLIENT, VOTE_PUBKEY};
 use collector::state::{load_state, save_state};
 use collector::{build_snapshot, Inputs};
 
@@ -58,6 +58,8 @@ fn run_once(args: &[String]) -> ExitCode {
         rpc_health: read_file("--rpc-health"),
         rpc_epoch_info: read_file("--rpc-epoch"),
         rpc_version: read_file("--rpc-version"),
+        rpc_balance: read_file("--rpc-balance"),
+        jito_client: Some(IS_JITO_CLIENT),
         // OS stats are gathered live by the daemon (#14); the --once dry-run leaves them null.
         os_stats: None,
         vote_account_json: read_file("--vote-account"),

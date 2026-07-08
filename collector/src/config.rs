@@ -9,3 +9,7 @@
 pub const IDENTITY_PUBKEY: &str = "vyRa8J7ULHfUAdnkTHP3YGhcLWaLURXLmD7CiZkMzWg";
 pub const VOTE_PUBKEY: &str = "9LjQ5UC1gyebUySAbodzHJdLSkYAYgVeQcr2vv6FZP6E";
 pub const CLUSTER: &str = "testnet";
+
+// The node runs jito-solana (getVersion reports plain "solana-core: 4.1.1" with no jito
+// marker, so RPC can't detect it). This validator is jito, so the Jito pill is true.
+pub const IS_JITO_CLIENT: bool = true;
