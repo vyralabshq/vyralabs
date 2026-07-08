@@ -138,12 +138,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Events first: the most actionable surface */}
-        <section className="mt-10">
-          <p className={sectionLabel}>ATTENTION</p>
-          <EventFeed events={s.events} now={now} />
-        </section>
-
         {/* Health numbers that actually carry a judgement */}
         <section className="mt-10">
           <p className={sectionLabel}>HEALTH</p>
@@ -181,19 +175,6 @@ export default function Dashboard() {
               sub="pays vote fees"
             />
           </div>
-        </section>
-
-        {/* Machine resources: compact, percent only, disk-led */}
-        <section className="mt-10">
-          <p className={sectionLabel}>SYSTEM</p>
-          <SystemStrip
-            ledgerPct={s.ledgerDisk.pct}
-            accountsPct={s.accountsDisk.pct}
-            memoryPct={s.memory.pct}
-            loadAvg={s.loadAvg}
-            cpuCores={s.cpuCores}
-            uptimeSeconds={s.uptimeSeconds}
-          />
         </section>
 
         {/* Epoch + chain position */}
@@ -277,6 +258,25 @@ export default function Dashboard() {
             currentEpoch={s.epoch}
             progressPct={s.epochProgressPct}
           />
+        </section>
+
+        {/* Machine resources: compact, percent only, disk-led */}
+        <section className="mt-10">
+          <p className={sectionLabel}>SYSTEM</p>
+          <SystemStrip
+            ledgerPct={s.ledgerDisk.pct}
+            accountsPct={s.accountsDisk.pct}
+            memoryPct={s.memory.pct}
+            loadAvg={s.loadAvg}
+            cpuCores={s.cpuCores}
+            uptimeSeconds={s.uptimeSeconds}
+          />
+        </section>
+
+        {/* Recent warnings/errors: diagnostics, below the vitals */}
+        <section className="mt-10">
+          <p className={sectionLabel}>ATTENTION</p>
+          <EventFeed events={s.events} now={now} />
         </section>
 
         {/* Trivia last */}
