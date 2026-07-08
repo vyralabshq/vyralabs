@@ -164,3 +164,29 @@ describe("parseHistory", () => {
     },
   );
 });
+
+describe("parseSnapshot liveness (#7)", () => {
+  // healthy fixture is stamped 2026-07-08T10:00:00Z.
+  const base = new Date("2026-07-08T10:00:00Z").getTime();
+  const at = (secs: number) => new Date(base + secs * 1000);
+
+  it("is LIVE within 30s", () => {
+    expect(parseSnapshot(healthy, at(5)).liveness).toBe("LIVE");
+    expect(parseSnapshot(healthy, at(30)).liveness).toBe("LIVE"); // boundary inclusive
+  });
+
+  it("is STALE between 30s and 90s", () => {
+    expect(parseSnapshot(healthy, at(45)).liveness).toBe("STALE");
+    expect(parseSnapshot(healthy, at(90)).liveness).toBe("STALE"); // boundary inclusive
+  });
+
+  it("is OFFLINE past 90s", () => {
+    expect(parseSnapshot(healthy, at(120)).liveness).toBe("OFFLINE");
+  });
+
+  it("is OFFLINE when the timestamp is missing or the input is unusable", () => {
+    expect(parseSnapshot({ schema_version: 1 }, at(5)).liveness).toBe("OFFLINE");
+    expect(parseSnapshot("garbage", at(5)).liveness).toBe("OFFLINE");
+    expect(parseSnapshot({ schema_version: 999 }, at(5)).liveness).toBe("OFFLINE");
+  });
+});

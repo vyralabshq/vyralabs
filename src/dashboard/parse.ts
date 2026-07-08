@@ -13,8 +13,16 @@ import {
   type EventItem,
   type HistoryPoint,
   type HistorySeries,
+  type Liveness,
 } from "./types";
-import { STALE_AFTER_SECONDS } from "./config";
+import { STALE_AFTER_SECONDS, OFFLINE_AFTER_SECONDS } from "./config";
+
+/** Three-state liveness from snapshot age. Missing timestamp reads as OFFLINE (#7). */
+function livenessOf(ageSeconds: number | null): Liveness {
+  if (ageSeconds === null || ageSeconds > OFFLINE_AFTER_SECONDS) return "OFFLINE";
+  if (ageSeconds > STALE_AFTER_SECONDS) return "STALE";
+  return "LIVE";
+}
 
 // --- coercion helpers: keep "missing" explicit as null, never NaN/undefined ---------
 
@@ -72,6 +80,7 @@ function emptyState(): DashboardState {
     generatedAt: null,
     ageSeconds: null,
     stale: true,
+    liveness: "OFFLINE",
     nodeHealthy: null,
     processActive: null,
     jitoActive: null,
@@ -146,6 +155,7 @@ export function parseSnapshot(raw: unknown, now: Date): DashboardState {
     generatedAt === null ? null : (now.getTime() - generatedAt.getTime()) / 1000;
   // Missing timestamp counts as stale. A future timestamp (negative age) does not.
   s.stale = s.ageSeconds === null || s.ageSeconds > STALE_AFTER_SECONDS;
+  s.liveness = livenessOf(s.ageSeconds);
 
   s.cluster = str(root.cluster);
   s.identityPubkey = str(root.identity_pubkey);

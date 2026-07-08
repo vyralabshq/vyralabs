@@ -1,12 +1,14 @@
-// Dashboard page. Parsed fixture data across the mission-control layout, ordered by what
-// an operator checks first: status, events, the health numbers, resources, history, then
-// trivia. Live polling (the r2.dev cutover) lands in slice #7; for now it reads the
-// checked-in fixtures and re-derives every tick.
+// Dashboard page. Parsed data across the mission-control layout, ordered by what an
+// operator checks first: status, events, the health numbers, resources, history, then
+// trivia. When a live metrics origin is configured (#7) it polls that; otherwise dev
+// serves the checked-in fixtures. Either way the state is re-derived every tick so a
+// snapshot ages LIVE -> STALE -> OFFLINE on its own, values dimmed but never hidden.
 
-import { USE_FIXTURES, SLOT_TIME_SECONDS } from "./config";
+import { USE_FIXTURES, HAS_LIVE_SOURCE, SLOT_TIME_SECONDS } from "./config";
 import { loadFixtureLatest } from "./fixtureSource";
 import { parseSnapshot, parseHistory } from "./parse";
 import { useNow } from "./hooks/useNow";
+import { useMetrics } from "./hooks/useMetrics";
 import { AwaitingState } from "./components/AwaitingState";
 import { status, statusWord } from "./health";
 import { fmtInt, fmtPct, fmtSol, fmtCompact } from "./format";
@@ -42,13 +44,18 @@ function behind(tip: number | null, snap: number | null): number | null {
 
 export default function Dashboard() {
   const now = useNow();
+  const live = useMetrics(now); // inert unless METRICS_BASE_URL is set
 
-  // Production has no live source yet, so it never renders fabricated data. Fixtures are
-  // dev/demo only; live polling and the r2.dev cutover arrive in slice #7.
-  if (!USE_FIXTURES) return <AwaitingState />;
+  // Live origin wins once it has data; else dev fixtures; else the honest awaiting state.
+  // Hooks above always run, so the early return here is safe.
+  const useLive = HAS_LIVE_SOURCE && live.hasData;
+  if (!useLive && !USE_FIXTURES) return <AwaitingState />;
 
-  const s = parseSnapshot(loadFixtureLatest(now), now);
-  const history = parseHistory(history1h);
+  const s = useLive ? live.snapshot : parseSnapshot(loadFixtureLatest(now), now);
+  const history = useLive ? live.history1h : parseHistory(history1h);
+
+  // STALE/OFFLINE dims the whole page but never hides values (#7 degradation contract).
+  const dimmed = s.liveness !== "LIVE";
 
   const pts = history.points;
   const spark = last(pts, 48);
@@ -74,9 +81,11 @@ export default function Dashboard() {
       <div className="grid-bg" aria-hidden="true" />
       <div className="glow" aria-hidden="true" />
 
-      <div className="sticky top-0 z-20 border-b border-accent/20 bg-elevated/85 px-6 py-1.5 text-center font-mono text-[11px] tracking-[0.14em] text-accent backdrop-blur">
-        sample data (local dev), not the live validator
-      </div>
+      {!useLive && (
+        <div className="sticky top-0 z-20 border-b border-accent/20 bg-elevated/85 px-6 py-1.5 text-center font-mono text-[11px] tracking-[0.14em] text-accent backdrop-blur">
+          sample data (local dev), not the live validator
+        </div>
+      )}
 
       <header className={`${container} flex h-18 items-center justify-between`}>
         <a
@@ -94,7 +103,9 @@ export default function Dashboard() {
         </span>
       </header>
 
-      <main className={`${container} pt-6 pb-24`}>
+      <main
+        className={`${container} pt-6 pb-24 transition-opacity duration-500 ${dimmed ? "opacity-55" : "opacity-100"}`}
+      >
         <div className="mb-8 flex flex-col gap-2">
           <p className="font-mono text-xs tracking-[0.18em] text-accent">status</p>
           <h1 className="font-display text-[clamp(30px,4vw,42px)] font-bold tracking-[-0.02em]">
@@ -123,7 +134,7 @@ export default function Dashboard() {
               <PubkeyChip label="identity" value={s.identityPubkey} />
               <PubkeyChip label="vote" value={s.votePubkey} />
             </div>
-            <Freshness ageSeconds={s.ageSeconds} stale={s.stale} />
+            <Freshness ageSeconds={s.ageSeconds} liveness={s.liveness} />
           </div>
         </div>
 
