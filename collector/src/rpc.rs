@@ -52,6 +52,12 @@ pub fn parse_epoch_info(json: &str) -> Option<EpochInfo> {
     })
 }
 
+/// Map `getBalance.result.value` (lamports) -> SOL. Absent/unparseable -> None.
+pub fn parse_balance(json: &str) -> Option<f64> {
+    let v: Value = serde_json::from_str(json).ok()?;
+    v["result"]["value"].as_u64().map(|lamports| lamports as f64 / 1e9)
+}
+
 /// Map `getVersion.result` -> client version. `jito` is always None (see module note).
 pub fn parse_version(json: &str) -> Option<Version> {
     let v: Value = serde_json::from_str(json).ok()?;
