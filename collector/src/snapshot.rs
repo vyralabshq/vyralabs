@@ -19,6 +19,7 @@ use crate::event::build_events;
 use crate::monitor::parse_monitor;
 use crate::osstats::{parse_os_stats, OsStatsInput};
 use crate::redact::Redactor;
+use crate::rpc::{parse_epoch_info, parse_health, parse_version};
 use crate::schema::{empty_history, empty_latest, History, HistoryPoint, Latest, VoteAccount};
 use crate::voteaccount::parse_vote_account;
 use crate::window::roll;
@@ -46,6 +47,10 @@ pub struct Inputs {
     pub log_lines: Option<Vec<String>>,
     /// Raw `agave-validator monitor` output (issue #10).
     pub monitor_output: Option<String>,
+    /// Raw localhost `getHealth` / `getEpochInfo` / `getVersion` responses (issue #10, Source B).
+    pub rpc_health: Option<String>,
+    pub rpc_epoch_info: Option<String>,
+    pub rpc_version: Option<String>,
     /// Captured OS-stat command outputs (issue #11, Source D).
     pub os_stats: Option<OsStatsInput>,
     /// Raw `solana vote-account --output json` (issue #11, Source E).
@@ -177,6 +182,31 @@ pub fn build_snapshot(
             None => errors.push("monitor: no status line found".to_string()),
         },
         None => errors.push("monitor: no output available".to_string()),
+    }
+
+    // Localhost RPC (issue #10, Source B): cheap methods only. Each independent.
+    match inputs.rpc_health.as_deref().map(parse_health) {
+        Some(Some(h)) => latest.health = Some(h),
+        Some(None) => errors.push("getHealth: unparseable".to_string()),
+        None => errors.push("getHealth: not available".to_string()),
+    }
+    match inputs.rpc_epoch_info.as_deref().map(parse_epoch_info) {
+        Some(Some(e)) => {
+            latest.epoch.epoch = e.epoch;
+            latest.epoch.slot_index = e.slot_index;
+            latest.epoch.slots_in_epoch = e.slots_in_epoch;
+            latest.epoch.absolute_slot = e.absolute_slot;
+            // getEpochInfo is authoritative for block height; datapoint value is the fallback.
+            latest.epoch.block_height = e.block_height.or(latest.epoch.block_height);
+            latest.slots.network_tx_total = e.transaction_count;
+        }
+        Some(None) => errors.push("getEpochInfo: unparseable".to_string()),
+        None => errors.push("getEpochInfo: not available".to_string()),
+    }
+    match inputs.rpc_version.as_deref().map(parse_version) {
+        Some(Some(v)) => latest.version = Some(v),
+        Some(None) => errors.push("getVersion: unparseable".to_string()),
+        None => errors.push("getVersion: not available".to_string()),
     }
 
     // OS stats (issue #11, Source D): each reading independent, missing -> null field.
@@ -346,6 +376,28 @@ Incremental Snapshot Slot: 420608053"
         let out = build_snapshot(&inputs, now(), None);
         assert_eq!(out.latest.slots.confirmed, Some(99));
         assert_eq!(out.latest.slots.finalized, Some(999));
+    }
+
+    #[test]
+    fn rpc_fills_epoch_health_version() {
+        let inputs = Inputs {
+            rpc_health: Some(r#"{"result":"ok","id":1}"#.to_string()),
+            rpc_epoch_info: Some(
+                r#"{"result":{"absoluteSlot":420622837,"blockHeight":372696907,"epoch":986,"slotIndex":194581,"slotsInEpoch":432000,"transactionCount":690208996359},"id":1}"#
+                    .to_string(),
+            ),
+            rpc_version: Some(r#"{"result":{"feature-set":3345198602,"solana-core":"4.1.1"},"id":1}"#.to_string()),
+            ..Inputs::new()
+        };
+        let out = build_snapshot(&inputs, now(), None);
+        assert_eq!(out.latest.health.unwrap().rpc.as_deref(), Some("ok"));
+        assert_eq!(out.latest.epoch.epoch, Some(986));
+        assert_eq!(out.latest.epoch.slots_in_epoch, Some(432000));
+        assert_eq!(out.latest.epoch.block_height, Some(372696907));
+        assert_eq!(out.latest.slots.network_tx_total, Some(690208996359));
+        let v = out.latest.version.unwrap();
+        assert_eq!(v.version.as_deref(), Some("4.1.1"));
+        assert_eq!(v.jito, None);
     }
 
     #[test]
