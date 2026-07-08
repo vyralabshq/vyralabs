@@ -40,7 +40,11 @@ fn env_or(key: &str, default: &str) -> String {
 
 fn write_json<T: serde::Serialize>(dir: &Path, name: &str, value: &T) -> std::io::Result<()> {
     let text = serde_json::to_string_pretty(value).expect("snapshot is JSON-serializable");
-    std::fs::write(dir.join(name), text)
+    // Write to a temp file then rename: rename is atomic on one filesystem, so a live
+    // reader (Caddy serving to the dashboard) never sees a half-written file.
+    let tmp = dir.join(format!(".{name}.tmp"));
+    std::fs::write(&tmp, text)?;
+    std::fs::rename(&tmp, dir.join(name))
 }
 
 /// Publish the snapshot. Local-file for now; the R2 upload (whole-object PUT with

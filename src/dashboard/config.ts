@@ -6,10 +6,9 @@
 export const IDENTITY_PUBKEY = "vyRa8J7ULHfUAdnkTHP3YGhcLWaLURXLmD7CiZkMzWg";
 export const VOTE_PUBKEY = "9LjQ5UC1gyebUySAbodzHJdLSkYAYgVeQcr2vv6FZP6E";
 
-// Live metrics origin: the R2 r2.dev subdomain (later a custom domain). Empty until the
-// collector (#8) is live; slice #7 sets this and wires the polling fetch. Changing the
-// origin is a one-line change here.
-export const METRICS_BASE_URL = "";
+// Live metrics origin: the collector on the box, served over HTTPS by Caddy on a
+// subdomain of vyralabs.fun. Changing the origin is a one-line change here.
+export const METRICS_BASE_URL: string = "https://metrics.vyralabs.fun";
 
 // The page never ships fabricated data. In local dev (and with no live URL configured)
 // it renders the checked-in fixtures so the UI is buildable before the collector exists.
