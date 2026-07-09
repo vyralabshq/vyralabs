@@ -1,98 +1,93 @@
-# Vyra Labs — Website Build Spec (for the coding agent)
+# Vyra Labs — Landing Page Build Spec v2 (for the coding agent)
 
-## What to build
+## Context for this rewrite
 
-A single landing page for Vyra Labs. Next.js + Tailwind. One page, no routing to empty sections. The page must be honest about stage: this is an engineering lab documenting a journey toward running a validator, not a company with shipped products. Do not invent products, repos counts, metrics, or a cloud platform. If it doesn't exist yet, it isn't on the page.
+The previous landing page was built when the honest state was "learning, documenting a journey, nothing shipped yet." That is no longer true. Since then:
 
-Reuse the existing Vyra design system (sun/orange on warm near-black) for all color, type, and component styling. The brand brief below mentions a blue palette and Geist font; ignore those. Colors and fonts come from the existing design system, not this doc.
+- A jito-solana v4.1.1 validator is **live and voting on Solana testnet** (identity vyRa8J7ULHfUAdnkTHP3YGhcLWaLURXLmD7CiZkMzWg), built from source, running as a systemd service on tuned bare metal in Singapore.
+- A **live metrics dashboard exists at /dashboard**, reading real node health straight from the box (finality lag, vote lag, drop rate, fork weight, epoch progress, vote credits, snapshots).
+- The stated goal has been locked: a build-in-public validator-tooling lab.
 
-## Stack and constraints
+So the old homepage now contradicts its own product: it says "STATUS: BUILDING, first entries coming as the testnet node goes up" while /dashboard shows a voting validator with 2.4M+ vote credits. This rewrite catches the homepage up to reality.
 
-- Next.js (App Router) + Tailwind CSS, same setup as the previous build.
-- Single page (`app/page.tsx`), content in a separate `content.ts` so copy is easy to edit.
-- No backend, no CMS. Static.
-- No em-dashes anywhere in copy (use parentheses or periods).
-- Mobile-responsive. Dark theme only.
-- Keep it dense and engineering-first, not marketing-fluffy. Reference feel: Linear, Vercel, Rust Foundation, Cloudflare docs. Calm, precise, no hype, no Web3 clichés (no glowing cubes, hexagons, rockets, or "revolutionary").
+**The honesty rule flips direction but stays strict:** before it was "don't claim what you haven't built." Now it's "show what you HAVE built (the live validator + dashboard), and STILL don't claim what you haven't (no shipped tooling repos yet, no mainnet, no external stake)." Accuracy in both directions.
+
+## Stack and constraints (unchanged)
+
+- Next.js (App Router) + Tailwind, same as current build. The /dashboard route already exists and stays as-is; this spec is for the landing page (`app/page.tsx`).
+- Content in a separate `content.ts` so copy is easy to edit.
+- No em-dashes anywhere (parentheses or periods).
+- Mobile-responsive, dark theme only.
+- Engineering-first, not marketing-fluffy. Reference feel: Linear, Vercel, Cloudflare docs. Calm, precise, no hype, no Web3 clichés.
 
 ## Design tokens (from existing Vyra design system, do not change)
 
 - Background base `#0c0805`, surface `#140d07`, elevated `#1c1209` (warm near-black).
-- Accent (sun orange) `#F77F1B`, brighter `#FFA033`. Use accent sparingly, for one or two focal elements and interactive states, not everywhere.
+- Accent (sun orange) `#F77F1B`, brighter `#FFA033`. Use sparingly, for focal elements and interactive/live states.
 - Text primary `#fdf3e8`, secondary `#b89274`, muted `#6e503a`.
-- Fonts: Syne (display/headings), JetBrains Mono (labels, code, mono accents). Body can be Syne or a clean sans already in the system.
-- Warm radial glow behind the hero (top-center), subtle, matching the design system background treatment.
-- Borders: thin, low-opacity orange (the existing border scale). Radius tokens already defined.
+- Fonts: Syne (display/headings), JetBrains Mono (labels, code, mono accents).
+- Warm radial glow behind hero (top-center), subtle.
+- Green for "healthy/live" status dots is acceptable (matches the dashboard's live indicators), used only for genuine live-status signals.
 
 ## Page structure (top to bottom)
 
-1. **Nav (minimal).** Left: `vyra` wordmark (the "y" in accent, matching the design system brand mark). Right: links to GitHub, X, and an Email/contact. That's it. No fake nav items like Products or Research.
+1. **Nav (minimal).** Left: `vyra` wordmark (accent "y"). Right: Dashboard, GitHub, X, Email. Dashboard is now a real, primary link (it exists), so it belongs in the nav prominently, not buried.
 
-2. **Hero.**
-   - A small status badge above the heading: a pulsing accent dot + mono text `STATUS: BUILDING`. (The pulse-dot component exists in the design system.)
-   - Heading (display, large): **Engineering the Journey.**
-   - Subheading: "From first principles to production infrastructure. Vyra documents the journey of learning distributed systems through Rust, networking, benchmarking, profiling, and validator engineering."
-   - One primary button (accent): **Explore the Journey** (anchors down to the journey section). One secondary/ghost button: **Read the Journal** (can anchor to the journal section or link to GitHub/blog for now).
+2. **Hero (updated to reflect live status).**
+   - Status badge above heading: **replace `STATUS: BUILDING` with a live indicator.** A green pulsing dot + mono text `VALIDATOR LIVE · TESTNET`. This is now true and it is the single strongest thing you can lead with. (Keep MISSION 001 as a secondary eyebrow if desired, but the live-status badge is the headline signal.)
+   - Heading (display, large): **From First Principles to Production.** (keep, it works)
+   - Subheading (tighten to reflect reality): "Vyra is a build-in-public validator-tooling lab. We run a Solana validator in the open and build the tooling that keeps it healthy. Every benchmark, deployment, failure, and lesson, shared openly."
+   - Primary button (accent): **See the Node** → links to /dashboard (the live dashboard is now the money shot, send people straight to it).
+   - Secondary/ghost button: **Read the Journey** → anchors to the journey section.
 
-3. **Manifesto (short).** A quiet, centered or left-aligned block. Pull from the brief, tightened:
+3. **Live status strip (NEW, high priority).** A compact horizontal band directly under the hero pulling 3-4 real numbers from the dashboard data source (or a shared JSON/endpoint the dashboard already uses). Show: vote credits (lifetime), finality lag (slots), drop rate (%), epoch. Mono, understated, each with a tiny label. A small "live · updated Xs ago" marker and a link "full dashboard →". This is the proof-in-the-hero that the old page lacked. If wiring live data into the landing page is non-trivial for v1, it is acceptable to link prominently to /dashboard instead and add the inline strip in a follow-up, but the live link must be unmissable.
 
-   > Every expert started as a beginner. The best engineers are built through curiosity, not shortcuts. Every benchmark, profiler trace, bug, and failed deployment teaches something. We document that journey openly. Vyra isn't just about building infrastructure, it's about becoming the engineers capable of building it.
-   > Keep it to a few lines. Mono eyebrow label above it: `MANIFESTO`.
+4. **Manifesto (keep, lightly tightened).** Mono eyebrow `MANIFESTO`. The current four-line version reads well:
 
-4. **Current Mission.** This is the honest centerpiece. A single highlighted card (use the accent card style from the design system).
-   - Eyebrow: `CURRENT MISSION`
-   - Title: **Dream — From Zero to Mainnet**
-   - Body: "Building a production-ready Solana validator while documenting every lesson along the way. Testnet first, mainnet when the operations and economics are proven."
-   - Optionally a small mono sub-line: a target or phase marker. Keep it real, no fake dates unless JK supplies one.
+   > Every expert started somewhere.
+   > Great infrastructure engineers aren't built through shortcuts.
+   > They're built through curiosity, benchmarks, profiling sessions, failed deployments, and iteration.
+   > Vyra documents that journey publicly.
 
-5. **The Journey (a vertical timeline / step list).** This replaces a "Projects" section. Show the actual learning-to-validator path as ordered steps, with the early ones marked done and later ones upcoming. Render as a clean vertical stepper (mono labels, accent dot on completed, muted on upcoming). Steps, in order:
-   - Learning Rust
-   - Async Rust
-   - Criterion benchmarking
-   - eBPF
-   - Networking
-   - Mini validator
-   - Building the client (jito-solana, running)
-   - Testnet node (upcoming)
-   - Mainnet (upcoming)
-     Mark through "Building the client" as done/in-progress and the last two as upcoming. Use a `DONE` / `IN PROGRESS` / `UPCOMING` mono tag per step. This is the most important section: it tells the true story and shows momentum without claiming finished products.
+5. **Current Mission (keep, update phase).** Accent card. Eyebrow `MISSION 001`. Title **Dream** / subtitle "From Zero to Mainnet". Body: "Building a production-ready Solana validator while documenting every lesson along the way. Testnet first, mainnet when the operations and economics are proven." **Update the phase marker** from `PHASE: TESTNET PREP` to `PHASE: TESTNET LIVE` (it is live now, prep is done).
 
-6. **Current Focus (a compact tag/list block).** Eyebrow `CURRENT FOCUS`. Short list, no descriptions needed:
-   - Solana validator internals
-   - eBPF and observability
-   - Networking (QUIC, SWQoS)
-   - Criterion benchmarking
-   - Distributed systems
-     Render as mono pills or a tight two-column list.
+6. **The Journey (vertical stepper, update statuses).** Same stepper concept, but the statuses move forward to match reality. Steps in order with updated tags:
+   - Learning Rust — DONE
+   - Async Rust — DONE
+   - Criterion benchmarking — DONE
+   - eBPF — DONE
+   - Networking — DONE
+   - Mini validator — DONE
+   - Building the client (jito-solana from source) — DONE
+   - **Testnet node, live and voting — DONE / LIVE** (this was "upcoming"; it is now real, this is the big status change)
+   - Open-source operator tooling (dashboard live, more in progress) — IN PROGRESS
+   - Mainnet — UPCOMING
+     Use `DONE` / `LIVE` / `IN PROGRESS` / `UPCOMING` mono tags. The stepper now shows a validator that actually got stood up, not a plan.
 
-7. **Journal (placeholder-honest).** Eyebrow `JOURNAL`. A short intro line: "Field notes from the build. Every experiment, regression, and lesson, written like an engineer documenting discoveries (not marketing)." Then either (a) link out to the existing writing/X/GitHub, or (b) show 2-3 real entry titles if JK has them, styled as `Journal #001 — <title>`. Do NOT fabricate entries. If there are none ready, show a single honest line: "First entries coming as the testnet node goes up." Writing-style guidance for any real entries: prefer "Today we found why this benchmark regressed 12%" over "Revolutionary infrastructure."
+7. **What's Next (keep the two-card layout, update).** Testnet card → flip from "TARGET: JULY 2026 / upcoming" to "LIVE · voting on testnet" with a link to the dashboard. Mainnet card → keep as UPCOMING, "pending delegation program approval, mainnet when operations and economics are proven."
 
-8. **Footer (very minimal).** Links: GitHub, X, Journal, Email. Nothing else. Below the links, a permanent line in muted mono:
-   `Current Mission: Dream — From Zero to Mainnet.`
-   This line is deliberate: it signals to every visitor that this is chapter one of a long journey, not a finished company. Keep it.
+8. **Current Focus (keep).** Eyebrow `CURRENT FOCUS`. Mono pills: Solana validator internals, eBPF and observability, Networking (QUIC, SWQoS), Validator devops and client maintenance, Distributed systems.
 
-## Mascot ("Pix" / the survey drone) — optional, low priority
+9. **Journal (keep honest).** Eyebrow `JOURNAL`. Intro line stays. **Update the placeholder:** the old "First entries coming as the testnet node goes up" is now stale (the node is up). Replace with either real entry titles if available (styled `Journal #001 — <title>`), or an honest current line like "Field notes from the build, starting with the from-scratch testnet bring-up." Do NOT fabricate entries. The first real entry is obvious and should be written: the from-scratch build (io_uring kernel wall, libclang/bindgen gauntlet, two-disk I/O split, first vote at latency 1).
 
-The brief describes a small autonomous survey-drone companion: curious, quiet, observant, never speaking, appears occasionally (think GitHub's Octocat, not an everywhere-mascot). For this first build, do NOT make this a priority or block on it. If the agent wants a subtle touch, a tiny minimal SVG drone/instrument glyph can sit once near the hero or footer. No eyes, no anime, no cartoon. Monochrome, line-based, matches the engineering-notebook mood. If in doubt, leave it out of v1 and add later.
+10. **Footer (minimal, keep).** Links: Dashboard, GitHub, X, Journal, Email. Permanent muted mono line: `Current Mission: Dream (From Zero to Mainnet).`
 
-## Copy bank (use as-is, tighten if needed)
+## Hard rules (updated honesty guardrails)
 
-- One-liner: "Engineering the Journey."
-- Brand sentence (for meta description / about): "Vyra is an engineering lab documenting the journey from first principles to production infrastructure, through open experiments, research, and systems engineering."
-- Taglines (pick one for hero, others for meta/social): "Built Through Curiosity." / "Understanding Before Scaling." / "Learning in Public." / "Observe. Build. Repeat." / "From Zero, Forward."
-- X bio (for reference, not the site): "Engineering the journey to distributed systems. Rust, Solana, networking, performance, eBPF. Building in public."
+- DO show the live validator and the live dashboard prominently. They are real. The old page under-claimed; fix that.
+- DO NOT claim shipped tooling that isn't public yet. The dashboard is live and can be shown. driftwatch, the XDP firewall, and the staking page are NOT shipped, so no product cards for them. "In progress" framing only.
+- DO NOT fabricate: no external stake numbers (self-stake is 0 / not applicable on testnet), no SFDP delegation (not yet approved), no fake repos count, no partners/testimonials.
+- Stake on the dashboard shows 0 / testnet config, that is honest and fine; do not dress it up.
+- No em-dashes.
 
-## Naming convention (for any labels on the page)
+## The one-liner (use identically everywhere: site, X bio, Discord, GitHub org)
 
-Let the `Vyra` prefix be the through-line if sub-areas are ever named: Vyra Journal, Vyra Bench, Vyra Trace, Vyra Validator. Do not invent unrelated product names. For this v1, you likely only need "Vyra" and "Vyra Journal."
-
-## Hard rules (the honesty guardrails)
-
-- No fake products, no "Vyra Validator" / "Vyra RPC" product cards, those go up only when they exist.
-- No fabricated stats (no "20 repositories," no benchmarks dashboard, no cloud platform).
-- No fake testimonials, partners, or logos.
-- The page should make a visitor think "this person is early, serious, and documenting honestly," not "this is a company pretending to have shipped." That honest framing is the differentiator. Keep it.
+> Build-in-public validator-tooling lab. We run a Solana validator in the open and ship open-source operator tooling, proven on our own node.
 
 ## Acceptance check
 
-The finished page should: load as one scrollable page, use the sun/orange-on-warm-dark design system, lead with "Engineering the Journey" + a building-status badge, center on the honest "Dream: Zero to Mainnet" mission and the real journey stepper, carry no fabricated products or metrics, and end with the permanent "Current Mission" line in the footer. Copy contains no em-dashes.
+The finished page should: load as one scrollable page on the existing design system; lead with a LIVE validator status badge (not "building"); prominently link to /dashboard as the primary CTA; show the journey stepper with the testnet node marked DONE/LIVE; keep the honest Mission and Mainnet-upcoming framing; carry no fabricated tooling/stats/stake; and match the live reality shown at /dashboard. No em-dashes.
+
+## What changed from v1 (summary for the agent)
+
+The site was written pre-launch and is now behind reality. The single theme of this rewrite: **the node is live and the dashboard is real, so the homepage must stop saying "building/coming soon" and start showing the running validator, while still not overclaiming tooling that hasn't shipped.**

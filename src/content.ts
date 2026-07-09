@@ -1,29 +1,66 @@
 // All site copy lives here so it is easy to edit. No em-dashes anywhere.
 
-// Socials intentionally empty for now. Fill in later.
 export const links = {
-  github: "#",
-  x: "#",
-  email: "#",
+  github: "https://github.com/vyralabshq",
+  x: "https://x.com/vyralabshq",
+  email: "mailto:vyralabshq@gmail.com",
+};
+
+// The stated goal is LOCKED and must resonate everywhere: hero, the lab statement, the
+// three do-cards, footer, meta, and any grant/SFDP form. One voice, one message.
+export const statedGoal = {
+  long: "Vyra Labs is a build-in-public validator lab run by people who read the protocol, not just run it. We reimplement consensus to understand it, instrument our own node at the kernel level to measure what actually costs vote credits, and publish every epoch's economics in the open.",
+  short:
+    "Build-in-public validator lab. We read consensus, instrument the node, and measure the truth about small-validator economics.",
 };
 
 export const hero = {
-  badge: "MISSION 001",
+  liveBadge: "VALIDATOR LIVE · TESTNET",
   heading: "From First Principles to",
   headingAccent: "Production.",
   subheading:
-    "Vyra documents the journey from learning distributed systems to operating production infrastructure. Every benchmark, deployment, failure, and lesson, shared openly.",
-  primaryCta: { label: "Explore the Journey", href: "#journey" },
+    "We run a Solana validator in the open and build the tooling that keeps it healthy. Every benchmark, deployment, failure, and lesson, shared openly.",
+  primaryCta: { label: "See the Node", href: "/dashboard" },
   secondaryCta: { label: "Read the Journal", href: "#journal" },
 };
 
-export const manifesto = {
-  eyebrow: "MANIFESTO",
-  lines: [
-    "Every expert started somewhere.",
-    "Great infrastructure engineers aren't built through shortcuts.",
-    "They're built through curiosity, benchmarks, profiling sessions, failed deployments, and iteration.",
-    "Vyra documents that journey publicly.",
+// The long-form stated goal, presented as the resonant statement. Split so the signature
+// line ("read the protocol, not just run it") can carry the accent.
+export const lab = {
+  eyebrow: "THE LAB",
+  lead: "Vyra Labs is a build-in-public validator lab run by people who",
+  accent: "read the protocol, not just run it.",
+  rest: "We reimplement consensus to understand it, instrument our own node at the kernel level to measure what actually costs vote credits, and publish every epoch's economics in the open.",
+};
+
+// Each card is one clause of the stated goal, made concrete. Tag drives the status pill.
+// href stays null until the artifact is genuinely public (no dead links).
+export const whatWeDo: {
+  eyebrow: string;
+  heading: string;
+  cards: { title: string; body: string; tag: string; href: string | null }[];
+} = {
+  eyebrow: "WHAT WE DO",
+  heading: "not just running it.",
+  cards: [
+    {
+      title: "Read the protocol",
+      body: "We reimplement consensus to understand it, not just run it. Reimplemented part of Alpenglow's Votor and published the explainer.",
+      tag: "PUBLISHED",
+      href: null,
+    },
+    {
+      title: "Instrument the node",
+      body: "We instrument our own node at the kernel level to measure what actually costs vote credits. driftwatch (eBPF) is in progress.",
+      tag: "IN PROGRESS",
+      href: null,
+    },
+    {
+      title: "Measure the economics",
+      body: "We publish every epoch's economics in the open. Real cost and revenue from our own node, measured, not modeled.",
+      tag: "SOON",
+      href: null,
+    },
   ],
 };
 
@@ -32,37 +69,48 @@ export const mission = {
   title: "Dream",
   subtitle: "From Zero to Mainnet",
   body: "Building a production-ready Solana validator while documenting every lesson along the way. Testnet first, mainnet when the operations and economics are proven.",
-  marker: "PHASE: TESTNET PREP",
+  marker: "PHASE: TESTNET LIVE",
 };
 
 export const milestones: {
   eyebrow: string;
+  heading: string;
   cards: {
+    phase: string;
     label: string;
     title: string;
     target: string;
     body: string;
     tag: string;
-    state: "next" | "upcoming";
+    state: "live" | "upcoming";
+    href: string | null;
+    note: string | null;
   }[];
 } = {
-  eyebrow: "WHAT'S NEXT",
+  eyebrow: "ROADMAP",
+  heading: "Road to mainnet.",
   cards: [
     {
+      phase: "PHASE 01",
       label: "TESTNET",
       title: "Testnet node",
-      target: "TARGET: JULY 2026",
-      body: "Live node on Alpenglow-era bare metal. Moving early to qualify for the Solana Foundation Delegation Program.",
-      tag: "NEXT",
-      state: "next",
+      target: "voting on testnet",
+      body: "Live node on bare metal, voting every slot. Building the operations and track record to qualify for the Solana Foundation Delegation Program.",
+      tag: "LIVE",
+      state: "live",
+      href: "/dashboard",
+      note: null,
     },
     {
+      phase: "PHASE 02",
       label: "MAINNET",
       title: "Mainnet validator",
-      target: "TARGET: ~2 MONTHS AFTER TESTNET",
-      body: "Production validator, pending delegation program approval. Mainnet when operations and economics are proven.",
+      target: "not started",
+      body: "Pending delegation program approval. Mainnet when the operations and economics are proven.",
       tag: "UPCOMING",
       state: "upcoming",
+      href: null,
+      note: "unlocks after delegation approval",
     },
   ],
 };
@@ -71,16 +119,15 @@ export const journal = {
   eyebrow: "JOURNAL",
   intro:
     "Field notes from the build. Every experiment, regression, and lesson, written like an engineer documenting discoveries (not marketing).",
-  empty: "First entries coming as the testnet node goes up.",
+  current: "Field notes from the build, starting with the from-scratch testnet bring-up.",
 };
 
 export const footer = {
-  tagline: "Building distributed systems in public.",
+  tagline: statedGoal.short,
   missionLine: "Current Mission: Dream (From Zero to Mainnet).",
 };
 
 export const meta = {
-  title: "Vyra (Engineering the Journey)",
-  description:
-    "Vyra is an engineering lab documenting the journey from first principles to production infrastructure, through open experiments, research, and systems engineering.",
+  title: "Vyra Labs (Build-in-Public Validator Lab)",
+  description: statedGoal.long,
 };
