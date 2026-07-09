@@ -128,6 +128,6 @@ export const footer = {
 };
 
 export const meta = {
-  title: "Vyra Labs (Build-in-Public Validator Lab)",
-  description: statedGoal.long,
+  title: "Vyra Labs",
+  description: "Solana validator infrastructure.",
 };
