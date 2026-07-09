@@ -51,6 +51,21 @@ function meanOf(series: (number | null)[]): number | null {
   return v.length === 0 ? null : v.reduce((a, b) => a + b, 0) / v.length;
 }
 
+// Light exponential smoothing for the chart line only (the cards show raw values). Rounds
+// single-sample jitter from the 10s poll into a flowing line, while a real sustained spike
+// still lifts the curve. Gaps (nulls) reset the filter so a failed cycle stays a gap.
+function ema(data: (number | null)[], alpha: number): (number | null)[] {
+  let prev: number | null = null;
+  return data.map((v) => {
+    if (v === null) {
+      prev = null;
+      return null;
+    }
+    prev = prev === null ? v : alpha * v + (1 - alpha) * prev;
+    return prev;
+  });
+}
+
 // An honest short-term trend chip: current value vs the window average. Returns undefined
 // when there is no history or the move is within `minAbs` (too small to be signal, not noise).
 function trendDelta(
@@ -141,6 +156,10 @@ export default function Dashboard() {
   // Short-term trend chips on the health cards: current value vs the last-hour average.
   const voteLagSeries = pts.map((p) => p.voteLag);
   const dropRateSeries = pts.map((p) => p.dropRatePct);
+
+  // Smoothed copies for the chart lines only (raw series still feed the trend chips above).
+  const finalityLagChart = ema(finalityLagSeries, 0.35);
+  const voteLagChart = ema(voteLagSeries, 0.35);
   const finalityDelta = trendDelta(s.finalityLag, finalityLagSeries, true, 0.5, (n) =>
     Math.round(n).toString(),
   );
@@ -331,7 +350,7 @@ export default function Dashboard() {
                 yMin={0}
                 yMax={80}
                 band={[28, 40]}
-                series={[{ name: "finality lag", data: finalityLagSeries, color: CHART.accent, area: true }]}
+                series={[{ name: "finality lag", data: finalityLagChart, color: CHART.accent, area: true }]}
                 yFormatter={(v) => `${Math.round(v)}`}
               />
             </div>
@@ -343,7 +362,7 @@ export default function Dashboard() {
                 yMin={0}
                 yMax={80}
                 band={[28, 34]}
-                series={[{ name: "vote lag", data: pts.map((p) => p.voteLag), color: CHART.accent, area: true }]}
+                series={[{ name: "vote lag", data: voteLagChart, color: CHART.accent, area: true }]}
                 yFormatter={(v) => `${Math.round(v)}`}
               />
             </div>

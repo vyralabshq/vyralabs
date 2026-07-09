@@ -52,9 +52,15 @@ export function TimeSeriesChart({
     const chart = chartRef.current;
     if (!chart) return;
 
+    const animate = !prefersReducedMotion();
     chart.setOption(
       {
-        animation: !prefersReducedMotion(),
+        animation: animate,
+        // Streaming feel: when a new 10s point arrives, ease the line to its new shape
+        // instead of snapping. Merge (below) keeps the series identity so this transition
+        // runs on data update, not a full redraw.
+        animationDurationUpdate: animate ? 600 : 0,
+        animationEasingUpdate: "cubicOut",
         grid: { left: 8, right: 12, top: 16, bottom: 8, containLabel: true },
         textStyle: { fontFamily: "JetBrains Mono, monospace", color: CHART.inkMuted },
         tooltip: {
@@ -111,7 +117,9 @@ export function TimeSeriesChart({
           data: times.map((t, i) => [t ? t.getTime() : null, s.data[i]]),
         })),
       },
-      true,
+      // Merge (not replace) so ECharts diffs the series and animates the transition,
+      // giving the streaming slide as the window rolls forward each cycle.
+      { notMerge: false, lazyUpdate: true },
     );
   }, [times, series, yFormatter, yMin, yMax, band]);
 
