@@ -5,7 +5,7 @@
 // without importing this.
 
 import * as echarts from "echarts/core";
-import { LineChart } from "echarts/charts";
+import { LineChart, GaugeChart, PieChart } from "echarts/charts";
 import {
   GridComponent,
   TooltipComponent,
@@ -16,6 +16,8 @@ import { CanvasRenderer } from "echarts/renderers";
 
 echarts.use([
   LineChart,
+  GaugeChart,
+  PieChart,
   GridComponent,
   TooltipComponent,
   MarkLineComponent,
