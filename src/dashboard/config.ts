@@ -6,9 +6,11 @@
 export const IDENTITY_PUBKEY = "vyRa8J7ULHfUAdnkTHP3YGhcLWaLURXLmD7CiZkMzWg";
 export const VOTE_PUBKEY = "9LjQ5UC1gyebUySAbodzHJdLSkYAYgVeQcr2vv6FZP6E";
 
-// Live metrics origin: the collector on the box, served over HTTPS by Caddy on a
-// subdomain of vyralabs.fun. Changing the origin is a one-line change here.
-export const METRICS_BASE_URL: string = "https://metrics.vyralabs.fun";
+// Live metrics origin. Production goes through our own same-origin proxy (/api/metrics/*,
+// a Vercel function) so the browser never sees the collector box's URL, IP, or the shared
+// secret. Local dev has no serverless function, so it falls back to the checked-in fixtures
+// (empty base -> USE_FIXTURES) instead of hitting the box directly.
+export const METRICS_BASE_URL: string = import.meta.env.DEV ? "" : "/api/metrics";
 
 // The page never ships fabricated data. In local dev (and with no live URL configured)
 // it renders the checked-in fixtures so the UI is buildable before the collector exists.
