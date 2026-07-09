@@ -61,7 +61,7 @@ export function SystemStrip({
   const over = loadAvg !== null && cpuCores !== null && loadAvg[0] > cpuCores;
 
   return (
-    <div className="flex flex-col gap-2.5 rounded-xl border border-accent/12 bg-surface/60 p-5">
+    <div className="flex flex-col gap-2.5 rounded-xl border border-accent/12 bg-surface/60 p-4 sm:p-5">
       <Bar label="ledger disk" pct={ledgerPct} warnAt={80} dangerAt={92} />
       <Bar label="accounts disk" pct={accountsPct} warnAt={80} dangerAt={92} />
       <Bar label="memory" pct={memoryPct} warnAt={85} dangerAt={95} />

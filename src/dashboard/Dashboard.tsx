@@ -39,7 +39,7 @@ const DonutChart = lazy(() =>
   import("./charts/RadialChart").then((m) => ({ default: m.DonutChart })),
 );
 
-const container = "relative z-10 mx-auto max-w-[1100px] px-6";
+const container = "relative z-10 mx-auto max-w-[1100px] px-4 sm:px-6";
 const sectionLabel = "mb-3 font-mono text-[11px] tracking-[0.16em] text-ink-muted";
 
 function behind(tip: number | null, snap: number | null): number | null {

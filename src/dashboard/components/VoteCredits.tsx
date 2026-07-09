@@ -78,7 +78,7 @@ export function VoteCredits({
 }) {
   return (
     <div
-      className={`flex h-full flex-col gap-4 rounded-xl border border-accent/12 bg-surface/60 p-5 transition-opacity ${stale ? "opacity-45" : ""}`}
+      className={`flex h-full flex-col gap-4 rounded-xl border border-accent/12 bg-surface/60 p-4 transition-opacity sm:p-5 ${stale ? "opacity-45" : ""}`}
     >
       <div className="flex items-center justify-between">
         <h3 className="font-display text-[15px] font-bold text-ink">Vote credits</h3>
@@ -105,14 +105,12 @@ export function VoteCredits({
           <div className="font-mono text-[10px] tracking-[0.1em] text-ink-muted">
             COMMISSION
           </div>
-          <div className="mt-1 flex items-center gap-1.5">
-            <span className="font-display text-lg font-bold tabular-nums text-ink">
-              {commissionPct === null ? <Missing /> : `${commissionPct}%`}
-            </span>
-            <span className="rounded-full border border-accent/30 bg-accent/10 px-1.5 py-px font-mono text-[9px] tracking-[0.06em] text-accent">
-              testnet config
-            </span>
+          <div className="mt-1 font-display text-lg font-bold tabular-nums text-ink">
+            {commissionPct === null ? <Missing /> : `${commissionPct}%`}
           </div>
+          <span className="mt-1.5 inline-block whitespace-nowrap rounded-full border border-accent/30 bg-accent/10 px-1.5 py-px font-mono text-[9px] tracking-[0.06em] text-accent">
+            testnet config
+          </span>
         </div>
         <div>
           <div className="font-mono text-[10px] tracking-[0.1em] text-ink-muted">
