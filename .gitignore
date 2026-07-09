@@ -25,3 +25,6 @@ collector/target
 *.njsproj
 *.sln
 *.sw?
+
+# Local build spec (not public)
+plan.md

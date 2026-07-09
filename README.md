@@ -1,75 +1,65 @@
-# React + TypeScript + Vite
+<p align="center">
+  <img src="public/banner.png" alt="Vyra Labs" width="820" />
+</p>
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+<p align="center">
+  Solana validator infrastructure, built in public.<br/>
+  A landing page and a live validator status dashboard, fed by a read-only Rust collector on the validator box.
+</p>
 
-Currently, two official plugins are available:
+<p align="center">
+  <a href="https://vyralabs.fun">Site</a> &nbsp;·&nbsp;
+  <a href="https://vyralabs.fun/dashboard">Dashboard</a>
+</p>
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## What's in here
 
-## React Compiler
+- **`src/`** — a Vite multi-page app with two entries sharing one design system:
+  - Landing page: `index.html` → `src/App.tsx` (copy lives in `src/content.ts`).
+  - Validator status dashboard: `dashboard.html` → `src/dashboard/` (a pure
+    `parseSnapshot` seam, a polling hook, ECharts visualizations, and a
+    LIVE → STALE → OFFLINE liveness model that degrades instead of blanking).
+- **`collector/`** — a dependency-light Rust daemon that samples the validator
+  read-only (`agave-validator monitor`, localhost RPC, `solana vote-account`, OS
+  stats), assembles a size-bounded JSON snapshot via a pure `build_snapshot()`
+  core, and publishes it for the dashboard to read. See `collector/deploy/RUN.md`.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Stack
 
-## Expanding the ESLint configuration
+- Frontend: React, TypeScript, Vite (multi-page), Tailwind CSS v4, ECharts (lazy-loaded)
+- Collector: Rust (serde, chrono, regex; no async runtime, no cloud SDKs)
+- Hosting: Vercel (site), the validator box (collector)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Development
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
+npm run dev      # landing + dashboard (dashboard uses checked-in fixtures in dev)
+npm run build    # tsc + vite build
+npm run lint
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Collector:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+cd collector
+cargo run -- --once     # dry-run over sample inputs, writes JSON locally
+cargo build --release
+```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Layout
 
 ```
+index.html            landing entry
+dashboard.html        dashboard entry
+src/
+  App.tsx             landing page
+  content.ts          landing copy
+  dashboard/          status dashboard (parse seam, hooks, charts, components)
+collector/            Rust status collector (build_snapshot core + fetch shell)
+```
+
+## Status
+
+Personal infrastructure project, build-in-public. Not accepting external
+contributions at the moment.
