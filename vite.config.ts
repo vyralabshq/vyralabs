@@ -6,6 +6,32 @@ import remarkFrontmatter from 'remark-frontmatter'
 import remarkMdxFrontmatter from 'remark-mdx-frontmatter'
 import { resolve } from 'node:path'
 
+// Estimate reading time from a post's prose + code, then write it into the YAML
+// frontmatter so it comes out on the exported `frontmatter.readingMinutes`. Runs after
+// remark-frontmatter has parsed the block (so the yaml node exists) and before
+// remark-mdx-frontmatter reads it. ~200 words/min, floored at 1.
+function remarkReadingTime() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (tree: any) => {
+    let words = 0
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const walk = (node: any) => {
+      if (typeof node.value === 'string') {
+        words += node.value.trim().split(/\s+/).filter(Boolean).length
+      }
+      if (Array.isArray(node.children)) node.children.forEach(walk)
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const child of tree.children as any[]) {
+      if (child.type !== 'yaml') walk(child)
+    }
+    const minutes = Math.max(1, Math.round(words / 200))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const yaml = (tree.children as any[]).find((n) => n.type === 'yaml')
+    if (yaml) yaml.value += `\nreadingMinutes: ${minutes}`
+  }
+}
+
 // Three standalone build entries: the landing page (index.html), the validator
 // dashboard (dashboard.html), and the Field Notes journal (journal.html). Keeping
 // them separate keeps each one's deps (ECharts on the dashboard, MDX/router on the
@@ -18,6 +44,7 @@ export default defineConfig({
     mdx({
       remarkPlugins: [
         remarkFrontmatter,
+        remarkReadingTime,
         [remarkMdxFrontmatter, { name: 'frontmatter' }],
       ],
     }),

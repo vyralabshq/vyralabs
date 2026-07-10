@@ -43,7 +43,9 @@ export function Index() {
                       </span>
                     )}
                     <span>{fmtDate(p.frontmatter.date)}</span>
-                    <span>{p.readingMinutes} min read</span>
+                    {p.frontmatter.readingMinutes != null && (
+                      <span>{p.frontmatter.readingMinutes} min read</span>
+                    )}
                     {p.frontmatter.author && (
                       <span>written by {p.frontmatter.author}</span>
                     )}

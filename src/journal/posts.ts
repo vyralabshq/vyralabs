@@ -13,13 +13,14 @@ export interface Frontmatter {
   number?: number;
   status?: string;
   author?: string;
+  // Computed at build by the remarkReadingTime plugin (see vite.config.ts).
+  readingMinutes?: number;
 }
 
 export interface Post {
   slug: string;
   frontmatter: Frontmatter;
   Component: ComponentType;
-  readingMinutes: number;
 }
 
 interface MdxModule {
@@ -30,20 +31,6 @@ interface MdxModule {
 const modules = import.meta.glob<MdxModule>("/content/journal/*.mdx", {
   eager: true,
 });
-
-// Raw source of each post, to estimate reading time (word count / 200 wpm).
-const sources = import.meta.glob("/content/journal/*.mdx", {
-  eager: true,
-  query: "?raw",
-  import: "default",
-}) as Record<string, string>;
-
-function readingMinutes(raw: string | undefined): number {
-  if (!raw) return 1;
-  const body = raw.replace(/^---[\s\S]*?---/, ""); // drop frontmatter
-  const words = body.trim().split(/\s+/).filter(Boolean).length;
-  return Math.max(1, Math.round(words / 200));
-}
 
 // URL slug drops the numeric ordering prefix: "004-tower-nesting.mdx" -> "tower-nesting".
 function slugOf(path: string): string {
@@ -56,7 +43,6 @@ export const posts: Post[] = Object.entries(modules)
     slug: slugOf(path),
     frontmatter: mod.frontmatter,
     Component: mod.default,
-    readingMinutes: readingMinutes(sources[path]),
   }))
   .sort((a, b) => {
     const na = a.frontmatter.number ?? 0;

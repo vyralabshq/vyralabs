@@ -11,6 +11,7 @@ declare module "*.mdx" {
     number?: number;
     status?: string;
     author?: string;
+    readingMinutes?: number;
   };
 
   const MDXComponent: ComponentType;

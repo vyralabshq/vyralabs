@@ -47,7 +47,9 @@ export function PostPage() {
               </span>
             )}
             <span>{fmtDate(fm.date)}</span>
-            <span>{post.readingMinutes} min read</span>
+            {fm.readingMinutes != null && (
+              <span>{fm.readingMinutes} min read</span>
+            )}
           </div>
           <h1 className="mt-3 font-display text-[clamp(28px,4.5vw,40px)] font-bold leading-[1.1] tracking-[-0.02em] text-ink">
             {fm.title}
