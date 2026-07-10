@@ -21,7 +21,7 @@ export const hero = {
   subheading:
     "We run a Solana validator in the open and build the tooling that keeps it healthy. Every benchmark, deployment, failure, and lesson, shared openly.",
   primaryCta: { label: "See the Node", href: "/dashboard" },
-  secondaryCta: { label: "Read the Journal", href: "#journal" },
+  secondaryCta: { label: "Read the Field Notes", href: "/logs" },
 };
 
 // The long-form stated goal, presented as the resonant statement. Split so the signature
@@ -116,10 +116,11 @@ export const milestones: {
 };
 
 export const journal = {
-  eyebrow: "JOURNAL",
+  eyebrow: "FIELD NOTES",
   intro:
-    "Field notes from the build. Every experiment, regression, and lesson, written like an engineer documenting discoveries (not marketing).",
-  current: "Field notes from the build, starting with the from-scratch testnet bring-up.",
+    "Operational field notes from running the node in the open. Real problems, the real logs, the root cause, and the exact fix (not marketing).",
+  current: "Read the field notes",
+  href: "/logs",
 };
 
 export const footer = {

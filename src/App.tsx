@@ -274,11 +274,16 @@ function App() {
           </div>
         </section>
 
-        {/* Journal */}
+        {/* Field Notes */}
         <section id="journal" className={section}>
           <p className={eyebrow}>{journal.eyebrow}</p>
           <p className="mb-[18px] max-w-[560px] text-ink-secondary">{journal.intro}</p>
-          <p className="font-mono text-[13px] text-ink-muted">{journal.current}</p>
+          <a
+            className="inline-flex items-center gap-1.5 font-mono text-[13px] text-accent transition-colors hover:text-accent-bright"
+            href={journal.href}
+          >
+            {journal.current} <span aria-hidden="true">→</span>
+          </a>
         </section>
       </main>
 
@@ -299,8 +304,8 @@ function App() {
           <a className={navLink} href={links.x} target="_blank" rel="noreferrer">
             X
           </a>
-          <a className={navLink} href="#journal">
-            Journal
+          <a className={navLink} href="/logs">
+            Field Notes
           </a>
           <a className={navLink} href={links.email}>
             Email

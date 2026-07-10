@@ -85,3 +85,120 @@
     transparent 70%
   );
 }
+
+/* Long-form prose for Field Notes posts. MDX bodies stay plain Markdown; all reading
+   styles (headings, paragraphs, code, lists, links) live here so authoring has zero
+   per-element classes. Reading-optimized: ~17px body, generous line-height, code blocks
+   scroll horizontally instead of wrapping. */
+.fieldnote {
+  color: var(--color-ink);
+  font-size: 17px;
+  line-height: 1.72;
+}
+.fieldnote > * + * {
+  margin-top: 1.2em;
+}
+.fieldnote h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin-top: 2.4em;
+  margin-bottom: 0.2em;
+}
+.fieldnote h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.2rem;
+  letter-spacing: -0.01em;
+  margin-top: 1.8em;
+  margin-bottom: 0.2em;
+}
+.fieldnote a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+.fieldnote a:hover {
+  color: var(--color-accent-bright);
+}
+.fieldnote strong {
+  color: var(--color-ink);
+  font-weight: 700;
+}
+.fieldnote ul,
+.fieldnote ol {
+  padding-left: 1.3em;
+}
+.fieldnote ul {
+  list-style: disc;
+}
+.fieldnote ol {
+  list-style: decimal;
+}
+.fieldnote li {
+  margin-top: 0.4em;
+}
+.fieldnote li::marker {
+  color: var(--color-ink-muted);
+}
+.fieldnote blockquote {
+  border-left: 2px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+  padding-left: 1em;
+  color: var(--color-ink-secondary);
+  font-style: italic;
+}
+.fieldnote hr {
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-accent) 12%, transparent);
+  margin: 2.4em 0;
+}
+/* Inline code */
+.fieldnote code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--color-elevated);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 12%, transparent);
+  border-radius: 5px;
+  padding: 0.1em 0.4em;
+  color: var(--color-accent-bright);
+}
+/* Code blocks: scroll, do not wrap */
+.fieldnote pre {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.6;
+  background: var(--color-surface);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 12%, transparent);
+  border-radius: 12px;
+  padding: 1em 1.1em;
+  overflow-x: auto;
+  /* Thin, themed horizontal scrollbar instead of the loud default (Firefox). */
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-accent) 25%, transparent)
+    transparent;
+}
+/* Same, for WebKit/Blink (Chrome, Brave, Safari). */
+.fieldnote pre::-webkit-scrollbar {
+  height: 8px;
+}
+.fieldnote pre::-webkit-scrollbar-track {
+  background: transparent;
+}
+.fieldnote pre::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  border-radius: 999px;
+}
+.fieldnote pre:hover::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-accent) 38%, transparent);
+}
+.fieldnote pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: inherit;
+  color: var(--color-ink);
+  white-space: pre;
+}

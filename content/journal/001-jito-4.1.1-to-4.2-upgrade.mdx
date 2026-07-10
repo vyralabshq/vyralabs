@@ -1,0 +1,150 @@
+---
+title: "Upgrading jito-solana 4.1.1 to 4.2.0-beta.0: everything that broke"
+date: "2026-07-10"
+number: 1
+author: "JK"
+tags: ["agave", "jito", "xdp", "ebpf", "monitoring", "sfdp"]
+summary: "The SFDP version floor forced the jump from 4.1.1 to 4.2.0-beta.0. The binary swap was the easy part. Then two unrelated-looking things broke: XDP on the host, and the dashboard's vote panels. Both traced back to the same upgrade."
+---
+
+Everything below is from the actual incident on our testnet node. The log lines and
+config are real, redacted only for keys.
+
+## What happened?
+
+The Solana Foundation Delegation Program sets a minimum client version, and testnet
+had moved past what I was running. So I upgraded jito-solana from **4.1.1 to
+4.2.0-beta.0**. I built from the verified release tag, swapped the binary, and the
+node came back voting, latency 1 on recent votes. That was the easy part.
+
+Then two things broke that looked completely unrelated: XDP would not come up on the
+host, and the dashboard's whole VOTING section went blank. Both turned out to be
+downstream of the same version bump. That is the real story here. A major client
+upgrade is never just the binary. It changes what the node needs from the host
+underneath it _and_ the shape of the data it emits above it.
+
+## Break 1: XDP would not come up (host side)
+
+Bringing XDP up on 4.2 was a chain of walls. Each fix revealed the next one under it.
+
+**Capabilities.** The first attach failed on missing network capabilities: XDP needs
+`CAP_NET_RAW` and `CAP_NET_ADMIN` to attach to the NIC. I granted both in the
+service's systemd override, and added `CAP_BPF` and `CAP_PERFMON` at the same time
+because the XDP docs list them for loading the BPF program and reading kernel/perf
+state. Worth being honest here: those last two were preemptive. The immediate next
+blocker was not a capability panic, it was memory.
+
+**Locked memory.** With capabilities granted, UMEM registration failed:
+
+```
+XDP_UMEM_REG failed: No buffer space available (os error 105)
+```
+
+The AF_XDP UMEM has to be locked into RAM, and the service's `LimitMEMLOCK` was too
+low to register the ring buffers, so the kernel refused with ENOBUFS. The systemd
+override that cleared both the capabilities and this:
+
+```ini
+[Service]
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN CAP_BPF CAP_PERFMON
+LimitMEMLOCK=2000000000
+```
+
+**NIC ring size.** Memlock fixed, the socket itself was the next wall:
+
+```
+ERROR agave_xdp::tx_loop] failed to create AF_XDP TX socket for queue QueueId(0)
+on CPU 31: setsockopt(SOL_XDP, ring=6, size=1022) failed: Invalid argument (os error 22)
+```
+
+The NIC driver reported a ring size of **1022**, not a power of two. AF_XDP wants
+power-of-two ring descriptors, so `setsockopt` rejected it with EINVAL. The fix is to
+set the ring to a power of two on the interface:
+
+```
+ethtool -G ens3f0np0 rx 1024 tx 1024
+```
+
+Three walls in, with a node that needs to be voting and not sitting in an XDP
+debugging session, I made the deliberate call to stop chasing it live. I ran with
+`--no-xdp` in the start script to get voting again immediately, and split the ring
+tuning off as its own task. `--no-xdp` is not the finished state; the `ethtool`
+change above is the resolution, deferred on purpose rather than ground on while
+credits are on the line.
+
+## Break 2: the dashboard went blank (data side)
+
+Separately, right after the upgrade, the dashboard's Vote Efficiency gauge and
+Epoch Credits donut showed nothing, and the per-epoch bars all read `epoch ?`. The
+node was voting fine and the collector was writing snapshots with no errors, so
+this was a silent parse producing nulls, not a dead component.
+
+The cause: 4.2 changed the shape of `solana vote-account --output json`. The
+per-epoch history is now nested under a `tower` wrapper:
+
+```json
+"epochVotingHistory": [
+  {
+    "tower": {
+      "epoch": 987,
+      "slotsInEpoch": 432000,
+      "creditsEarned": 493896,
+      "maxCreditsPerSlot": 16
+    }
+  }
+]
+```
+
+On 4.1.1 those fields were flat: `epoch` and `creditsEarned` sat directly on each
+entry. The recent-votes array moved too: `votesObserved` is now `{ "Tower": [...] }`
+instead of a plain array. Our collector still read the old flat path, found nothing
+there, and wrote nulls. The dashboard faithfully rendered "no data."
+
+This is the Alpenglow-era change landing early: votes are now typed by which
+consensus mechanism produced them. Today everything is `Tower`; once Votor ships you
+will see a `Votor` key alongside it. So the fix is not to hardcode `tower`. Instead,
+our collector unwraps whichever consensus key exists and falls back to the flat
+entry. This is our own parser, not an Agave API:
+
+```rust
+/// Agave 4.2 wraps per-epoch objects under a consensus-type key (`tower` today,
+/// `votor` after Alpenglow). Return the inner object if a wrapper is present, else
+/// the value itself (flat pre-4.2 shape).
+fn consensus_inner(e: &Value) -> &Value {
+    for key in ["tower", "votor", "Tower", "Votor"] {
+        if e.get(key).is_some() {
+            return &e[key];
+        }
+    }
+    e
+}
+```
+
+With the parser reading the unwrapped object, rebuilding the collector and restarting
+it on the box was all it took. The next snapshot it wrote carried real epoch numbers
+again, and every panel filled back in: the per-epoch bars, the vote-efficiency gauge,
+and the credits donut.
+
+The tell that this was a shape change and not a dead node was hiding in plain sight:
+lifetime credits and commission never broke, because those two fields were never
+wrapped under `tower`. They kept updating the whole time, which is exactly what
+masked how much of the rest had quietly moved.
+
+## What I learned
+
+One upgrade, two failures, one lesson: **a major client bump is never just the
+binary.** 4.2 changed what the node needs from the host (the XDP capability chain)
+and the contract of what it emits (the vote-account nesting). Neither shows up until
+you exercise the new path. The discipline that made this survivable:
+
+- **Upgrade on testnet first.** Every one of these would have been a mainnet
+  incident. This is precisely why testnet exists.
+- **Keep the old binary.** A known-good rollback target means the upgrade is never a
+  one-way door.
+- **Separate "get it voting" from "get it optimal."** `--no-xdp` is not the finished
+  state, but it is the correct state while the node is live and the real fix needs
+  focus. Availability first, tuning second.
+- **Parse structured output, and tolerate re-nesting.** JSON over human text is why
+  the dashboard fix was ten minutes, not a rewrite. But structured output still
+  renames and re-nests between versions, so unwrap defensively and survive the next
+  one (`Votor`) instead of going blank again.

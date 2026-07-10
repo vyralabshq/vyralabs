@@ -1,6 +1,8 @@
 {
   "rewrites": [
     { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/logs", "destination": "/journal.html" },
+    { "source": "/logs/(.*)", "destination": "/journal.html" },
     { "source": "/api/metrics/:file", "destination": "/api/metrics?file=:file" }
   ]
 }
