@@ -4,8 +4,13 @@
   "cluster": "testnet",
   "identity_pubkey": "vyRa8J7ULHfUAdnkTHP3YGhcLWaLURXLmD7CiZkMzWg",
   "vote_pubkey": "9LjQ5UC1gyebUySAbodzHJdLSkYAYgVeQcr2vv6FZP6E",
-  "health": { "rpc": "ok" },
-  "version": { "version": "2.2.14", "jito": true },
+  "health": {
+    "rpc": "ok"
+  },
+  "version": {
+    "version": "2.2.14",
+    "jito": true
+  },
   "slots": {
     "processed": 420548000,
     "confirmed": 420547999,
@@ -22,14 +27,36 @@
     "absolute_slot": 420548000,
     "block_height": 372623200
   },
-  "vote": { "latest": 420547999, "root": 420547968 },
-  "block_production": { "produced": 365490, "dropped": 7460 },
+  "vote": {
+    "latest": 420547999,
+    "root": 420547968
+  },
+  "block_production": {
+    "produced": 365490,
+    "dropped": 7460
+  },
   "fork_weight": 0.9487,
   "system": {
-    "ledger_disk": { "pct": 63.1, "used_gb": 946.5, "total_gb": 1500.0 },
-    "accounts_disk": { "pct": 41.8, "used_gb": 209.0, "total_gb": 500.0 },
-    "memory": { "pct": 71.9, "used_gb": 184.1, "total_gb": 256.0 },
-    "load_avg": [4.02, 3.9, 3.71],
+    "ledger_disk": {
+      "pct": 63.1,
+      "used_gb": 946.5,
+      "total_gb": 1500.0
+    },
+    "accounts_disk": {
+      "pct": 41.8,
+      "used_gb": 209.0,
+      "total_gb": 500.0
+    },
+    "memory": {
+      "pct": 71.9,
+      "used_gb": 184.1,
+      "total_gb": 256.0
+    },
+    "load_avg": [
+      4.02,
+      3.9,
+      3.71
+    ],
     "cpu_cores": 32,
     "uptime_seconds": 802800,
     "process_active": true
@@ -41,9 +68,18 @@
     "commission_pct": 100,
     "activated_stake_sol": 500.0,
     "epoch_credits": [
-      { "epoch": 986, "credits": 657214, "max": 6912000 },
-      { "epoch": 985, "credits": 1239987, "max": 6912000 }
-    ]
+      {
+        "epoch": 986,
+        "credits": 657214,
+        "max": 6912000
+      },
+      {
+        "epoch": 985,
+        "credits": 1239987,
+        "max": 6912000
+      }
+    ],
+    "recent_votes": null
   },
   "events": [],
   "errors": []

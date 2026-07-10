@@ -3,6 +3,7 @@ import type { Status } from "../health";
 import { Missing } from "./Missing";
 import { Sparkline } from "./Sparkline";
 import { StatusDot } from "./StatusDot";
+import { InfoTip } from "./InfoTip";
 
 // A headline number with a label, optional status-tinted icon, trend delta, sub-line and
 // sparkline. A null value renders the shared placeholder, never NaN/undefined.
@@ -30,6 +31,7 @@ export function StatPanel({
   delta,
   spark,
   sparkClass,
+  info,
   dim = false,
 }: {
   label: string;
@@ -41,6 +43,7 @@ export function StatPanel({
   delta?: Delta;
   spark?: (number | null)[];
   sparkClass?: string;
+  info?: string;
   dim?: boolean;
 }) {
   return (
@@ -59,6 +62,7 @@ export function StatPanel({
             status !== undefined && <StatusDot status={status} />
           )}
           {label}
+          {info && <InfoTip text={info} />}
         </span>
         {delta ? (
           <span

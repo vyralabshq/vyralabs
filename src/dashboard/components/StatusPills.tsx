@@ -37,17 +37,22 @@ function Pill({ label, state }: { label: string; state: PillState }) {
 export function StatusPills({
   nodeHealthy,
   processActive,
-  jitoActive,
+  version,
 }: {
   nodeHealthy: PillState;
   processActive: PillState;
-  jitoActive: PillState;
+  version?: string | null;
 }) {
   return (
     <div className="flex flex-wrap gap-2.5">
       <Pill label="Node healthy" state={nodeHealthy} />
       <Pill label="Process active" state={processActive} />
-      <Pill label="Jito active" state={jitoActive} />
+      {version && (
+        <span className="inline-flex items-center gap-2 rounded-full border border-accent/15 bg-surface px-3.5 py-1.5 font-mono text-[12px] tabular-nums text-ink-secondary">
+          <span className="tracking-[0.08em] text-ink-muted">client</span>
+          Jito {version}
+        </span>
+      )}
     </div>
   );
 }

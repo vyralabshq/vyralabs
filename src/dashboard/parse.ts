@@ -14,6 +14,7 @@ import {
   type HistoryPoint,
   type HistorySeries,
   type Liveness,
+  type RecentVote,
 } from "./types";
 import { STALE_AFTER_SECONDS, OFFLINE_AFTER_SECONDS } from "./config";
 
@@ -118,6 +119,7 @@ function emptyState(): DashboardState {
     commissionPct: null,
     activatedStakeSol: null,
     epochCredits: [],
+    recentVotes: [],
     events: [],
     errors: [],
   };
@@ -246,6 +248,15 @@ export function parseSnapshot(raw: unknown, now: Date): DashboardState {
             max: o ? num(o.max) : null,
           };
         })
+      : [];
+    s.recentVotes = Array.isArray(va.recent_votes)
+      ? va.recent_votes
+          .map((r): RecentVote | null => {
+            const o = asObject(r);
+            const slot = o ? num(o.slot) : null;
+            return slot === null ? null : { slot, latency: o ? num(o.latency) : null };
+          })
+          .filter((r): r is RecentVote => r !== null)
       : [];
   }
 

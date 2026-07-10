@@ -22,13 +22,31 @@
     "absolute_slot": null,
     "block_height": null
   },
-  "vote": { "latest": null, "root": null },
-  "block_production": { "produced": null, "dropped": null },
+  "vote": {
+    "latest": null,
+    "root": null
+  },
+  "block_production": {
+    "produced": null,
+    "dropped": null
+  },
   "fork_weight": null,
   "system": {
-    "ledger_disk": { "pct": null, "used_gb": null, "total_gb": null },
-    "accounts_disk": { "pct": null, "used_gb": null, "total_gb": null },
-    "memory": { "pct": null, "used_gb": null, "total_gb": null },
+    "ledger_disk": {
+      "pct": null,
+      "used_gb": null,
+      "total_gb": null
+    },
+    "accounts_disk": {
+      "pct": null,
+      "used_gb": null,
+      "total_gb": null
+    },
+    "memory": {
+      "pct": null,
+      "used_gb": null,
+      "total_gb": null
+    },
     "load_avg": null,
     "cpu_cores": null,
     "uptime_seconds": null,
@@ -40,7 +58,8 @@
     "credits_lifetime": null,
     "commission_pct": null,
     "activated_stake_sol": null,
-    "epoch_credits": null
+    "epoch_credits": null,
+    "recent_votes": null
   },
   "events": [],
   "errors": [

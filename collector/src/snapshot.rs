@@ -265,6 +265,7 @@ pub fn build_snapshot(
                 commission_pct: d.commission_pct,
                 activated_stake_sol: activated.or(d.activated_stake_sol),
                 epoch_credits: d.epoch_credits,
+                recent_votes: d.recent_votes,
             };
         }
         Some(None) => errors.push("vote-account: unparseable json".to_string()),

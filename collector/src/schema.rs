@@ -101,6 +101,14 @@ pub struct EpochCredit {
     pub max: Option<i64>,
 }
 
+/// One recent vote from the tower. `latency` is slots between the voted slot and when the
+/// vote landed: 1 is optimal, up to 16 is the max credited. Mirrors `RawRecentVote`.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RecentVote {
+    pub slot: i64,
+    pub latency: Option<i64>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VoteAccount {
     pub stale: bool,
@@ -109,6 +117,9 @@ pub struct VoteAccount {
     pub commission_pct: Option<f64>,
     pub activated_stake_sol: Option<f64>,
     pub epoch_credits: Option<Vec<EpochCredit>>,
+    /// Last ~31 votes with per-slot latency, for the recent-votes strip. `null` when the
+    /// source did not carry them.
+    pub recent_votes: Option<Vec<RecentVote>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -188,6 +199,7 @@ pub fn empty_latest(
             commission_pct: None,
             activated_stake_sol: None,
             epoch_credits: None,
+            recent_votes: None,
         },
         events: Vec::new(),
         errors: Vec::new(),

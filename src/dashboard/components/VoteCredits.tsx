@@ -1,6 +1,7 @@
 import type { EpochCredit } from "../types";
 import { fmtAge, fmtInt, fmtSol } from "../format";
 import { Missing } from "./Missing";
+import { InfoTip } from "./InfoTip";
 
 // Vote performance. Commission carries a badge (not a footnote) so 100% reads as the
 // testnet config it is, never a real economic setting. Per-epoch credits are shown as a
@@ -81,7 +82,10 @@ export function VoteCredits({
       className={`flex h-full flex-col gap-4 rounded-xl border border-accent/12 bg-surface/60 p-4 transition-opacity sm:p-5 ${stale ? "opacity-45" : ""}`}
     >
       <div className="flex items-center justify-between">
-        <h3 className="font-display text-[15px] font-bold text-ink">Vote credits</h3>
+        <h3 className="flex items-center gap-1.5 font-display text-[15px] font-bold text-ink">
+          Vote credits
+          <InfoTip text="Vote credits are how a validator earns rewards: one per vote that lands on time (up to 16 per slot). Lifetime is the running total; the bars below are per epoch." />
+        </h3>
         <div className="flex items-center gap-2 font-mono text-[11px] text-ink-muted">
           <span>as of {fmtAge(fetchedAgeSeconds)}</span>
           {stale && (

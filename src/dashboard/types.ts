@@ -60,6 +60,7 @@ export interface RawLatest {
     commission_pct: number | null;
     activated_stake_sol: number | null;
     epoch_credits: RawEpochCredit[] | null;
+    recent_votes: RawRecentVote[] | null;
   } | null;
 
   events: RawEvent[] | null;
@@ -76,6 +77,11 @@ export interface RawEpochCredit {
   epoch: number | null;
   credits: number | null;
   max: number | null;
+}
+
+export interface RawRecentVote {
+  slot: number | null;
+  latency: number | null;
 }
 
 export interface RawEvent {
@@ -125,6 +131,12 @@ export interface EpochCredit {
   epoch: number | null;
   credits: number | null;
   max: number | null;
+}
+
+/** One recent vote: the voted slot and how many slots late it landed (1 = optimal). */
+export interface RecentVote {
+  slot: number;
+  latency: number | null;
 }
 
 /** Whole-page liveness signal (#7). Values always visible, just dimmed off LIVE. */
@@ -203,6 +215,7 @@ export interface DashboardState {
   commissionPct: number | null;
   activatedStakeSol: number | null;
   epochCredits: EpochCredit[];
+  recentVotes: RecentVote[];
 
   // Events (#6)
   events: EventItem[];

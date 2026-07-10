@@ -15,13 +15,27 @@ function lo(v: number, okMin: number, warnMin: number): Status {
 }
 
 export const status = {
-  finalityLag: (v: number | null): Status | null => (v === null ? null : hi(v, 40, 75)),
-  voteLag: (v: number | null): Status | null => (v === null ? null : hi(v, 40, 75)),
-  dropRate: (v: number | null): Status | null => (v === null ? null : hi(v, 3, 7)),
-  forkWeight: (v: number | null): Status | null => (v === null ? null : lo(v, 66, 40)),
-  disk: (v: number | null): Status | null => (v === null ? null : hi(v, 80, 92)),
-  memory: (v: number | null): Status | null => (v === null ? null : hi(v, 85, 95)),
-  balance: (v: number | null): Status | null => (v === null ? null : lo(v, 1, 0.1)),
+  finalityLag: (v: number | null): Status | null =>
+    v === null ? null : hi(v, 40, 75),
+  voteLag: (v: number | null): Status | null =>
+    v === null ? null : hi(v, 40, 75),
+  // Vote distance: slots between the chain tip and our last landed vote. Small means
+  // keeping up; past ~128 the cluster considers a validator delinquent.
+  voteDistance: (v: number | null): Status | null =>
+    v === null ? null : hi(v, 64, 128),
+  // Vote success: share of the epoch's possible credits actually earned so far.
+  voteSuccess: (v: number | null): Status | null =>
+    v === null ? null : lo(v, 85, 50),
+  dropRate: (v: number | null): Status | null =>
+    v === null ? null : hi(v, 3, 7),
+  forkWeight: (v: number | null): Status | null =>
+    v === null ? null : lo(v, 66, 40),
+  disk: (v: number | null): Status | null =>
+    v === null ? null : hi(v, 80, 92),
+  memory: (v: number | null): Status | null =>
+    v === null ? null : hi(v, 85, 95),
+  balance: (v: number | null): Status | null =>
+    v === null ? null : lo(v, 1, 0.1),
 };
 
 /** Short human qualifier for a status, e.g. next to drop rate. */
