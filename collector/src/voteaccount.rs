@@ -12,6 +12,18 @@ use serde_json::Value;
 
 use crate::schema::EpochCredit;
 
+/// Agave 4.2 wraps per-epoch (and per-vote) objects under a consensus-type key
+/// (`tower` today, `votor` after Alpenglow). Return the inner object if a known
+/// wrapper is present, else the value itself (flat pre-4.2 shape).
+fn consensus_inner(e: &Value) -> &Value {
+    for key in ["tower", "votor", "Tower", "Votor"] {
+        if e.get(key).is_some() {
+            return &e[key];
+        }
+    }
+    e
+}
+
 /// The data fields a vote-account fetch yields (no stale/fetched_at — caller owns those).
 #[derive(Debug, Clone, PartialEq)]
 pub struct VoteAccountData {
@@ -28,11 +40,15 @@ pub fn parse_vote_account(json: &str) -> Option<VoteAccountData> {
     let epoch_credits = v["epochVotingHistory"].as_array().map(|arr| {
         arr.iter()
             .map(|e| {
-                let per_slot = e["maxCreditsPerSlot"].as_i64();
-                let slots = e["slotsInEpoch"].as_i64();
+                // Agave 4.2 nests each entry under a consensus-type wrapper
+                // ("tower" now, "votor" once Alpenglow lands). Older builds were flat.
+                // Unwrap whichever wrapper exists, else read the entry directly.
+                let inner = consensus_inner(e);
+                let per_slot = inner["maxCreditsPerSlot"].as_i64();
+                let slots = inner["slotsInEpoch"].as_i64();
                 EpochCredit {
-                    epoch: e["epoch"].as_i64(),
-                    credits: e["creditsEarned"].as_i64(),
+                    epoch: inner["epoch"].as_i64(),
+                    credits: inner["creditsEarned"].as_i64(),
                     max: per_slot.zip(slots).map(|(p, s)| p * s),
                 }
             })
@@ -78,6 +94,29 @@ mod tests {
         assert_eq!(ec[0].credits, Some(1_239_987));
         assert_eq!(ec[0].max, Some(16 * 432_000));
         assert_eq!(ec[1].epoch, Some(986));
+    }
+
+    // Agave 4.2: entries wrapped under "tower".
+    const SAMPLE_4_2: &str = r#"{
+      "credits": 3832063,
+      "commission": 100,
+      "epochVotingHistory": [
+        { "tower": { "epoch": 985, "slotsInEpoch": 432000, "creditsEarned": 1239987, "credits": 1239987, "prevCredits": 0, "maxCreditsPerSlot": 16 } },
+        { "tower": { "epoch": 987, "slotsInEpoch": 432000, "creditsEarned": 493896, "credits": 3832063, "prevCredits": 3338167, "maxCreditsPerSlot": 16 } }
+      ]
+    }"#;
+
+    #[test]
+    fn parses_nested_tower_shape() {
+        let d = parse_vote_account(SAMPLE_4_2).unwrap();
+        assert_eq!(d.credits_lifetime, Some(3_832_063));
+        let ec = d.epoch_credits.unwrap();
+        assert_eq!(ec.len(), 2);
+        assert_eq!(ec[0].epoch, Some(985));
+        assert_eq!(ec[0].credits, Some(1_239_987));
+        assert_eq!(ec[0].max, Some(16 * 432_000));
+        assert_eq!(ec[1].epoch, Some(987));
+        assert_eq!(ec[1].credits, Some(493_896));
     }
 
     #[test]
