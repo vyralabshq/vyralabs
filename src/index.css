@@ -73,7 +73,9 @@
   position: fixed;
   top: -340px;
   left: 50%;
-  width: 900px;
+  /* Cap to the viewport so the 900px decorative layer never spills past a phone's
+     width and triggers horizontal scroll. */
+  width: min(900px, 100%);
   height: 700px;
   transform: translateX(-50%);
   z-index: 0;

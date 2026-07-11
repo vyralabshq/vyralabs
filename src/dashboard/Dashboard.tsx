@@ -314,7 +314,7 @@ export default function Dashboard() {
         {/* Is it voting: the validator's actual job, answered first and in plain words */}
         <section className="mt-10">
           <p className={sectionLabel}>IS IT VOTING</p>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 min-[440px]:grid-cols-2 md:grid-cols-3">
             <StatPanel
               label="VOTE DISTANCE"
               value={fmtInt(voteDistance)}
@@ -432,7 +432,7 @@ export default function Dashboard() {
         {/* Node caught up: is it synced with the cluster and can it pay to vote */}
         <section className="mt-10">
           <p className={sectionLabel}>NODE CAUGHT UP</p>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 min-[440px]:grid-cols-2 md:grid-cols-3">
             <StatPanel
               label="TO FINALITY"
               value={fmtInt(s.finalityLag)}
@@ -520,7 +520,7 @@ export default function Dashboard() {
         {/* Machine resources + snapshot lag: the ops layer, below the validator vitals */}
         <section className="mt-10">
           <p className={sectionLabel}>SYSTEM</p>
-          <div className="mb-3 grid grid-cols-2 gap-3">
+          <div className="mb-3 grid grid-cols-1 gap-3 min-[440px]:grid-cols-2">
             <StatPanel
               label="INCR SNAPSHOT"
               value={fmtInt(behind(s.processedSlot, s.incrementalSnapshotSlot))}
@@ -553,7 +553,7 @@ export default function Dashboard() {
         {/* Trivia + advanced signals last */}
         <section className="mt-10">
           <p className={sectionLabel}>NETWORK</p>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 min-[440px]:grid-cols-2 md:grid-cols-3">
             <StatPanel
               label="LEADER BLOCKS"
               value={fmtInt(s.blocksProduced)}
