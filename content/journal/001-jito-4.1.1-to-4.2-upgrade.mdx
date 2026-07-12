@@ -59,7 +59,8 @@ on CPU 31: setsockopt(SOL_XDP, ring=6, size=1022) failed: Invalid argument (os e
 
 The NIC driver reported a ring size of **1022**, not a power of two. AF_XDP wants
 power-of-two ring descriptors, so `setsockopt` rejected it with EINVAL. The fix is to
-set the ring to a power of two on the interface:
+force the ring to a power of two on the interface (which is where the resolution
+section picks up):
 
 ```
 ethtool -G ens3f0np0 rx 1024 tx 1024
@@ -129,6 +130,57 @@ The tell that this was a shape change and not a dead node was hiding in plain si
 lifetime credits and commission never broke, because those two fields were never
 wrapped under `tower`. They kept updating the whole time, which is exactly what
 masked how much of the rest had quietly moved.
+
+## Resolution: XDP is live
+
+Two days later, with the node stable, I went back to close the deferred ring-tuning
+task.
+
+**The ring was already at 1024.** Before touching anything I checked
+`ethtool -g ens3f0np0`, and the descriptors were already a power of two. Wall 3 had
+resolved itself somewhere between the incident and now, likely a driver reset; all
+that remained was making it stick across reboots.
+
+Then: removed `--no-xdp` from the start script, `agave-validator exit --force`, and
+let systemd restart the process. `systemctl status` showed the override still
+attached, so the capability and memlock fixes from Break 1 carried through the restart
+untouched. `solana catchup` read `us:421481026 them:421481026`: replayed to chain tip,
+total downtime a few minutes.
+
+The proof is in the node's own metrics. Before, running on `--no-xdp`:
+
+```
+2026-07-12T01:29:30Z retransmit-stage,is_xdp=false
+```
+
+After the restart:
+
+```
+2026-07-12T16:35:09Z retransmit-stage,is_xdp=true
+2026-07-12T16:35:09Z num_shreds_dropped_xdp_full=0i
+```
+
+The restart sits between these two lines.
+
+Shred retransmission now goes through AF_XDP sockets straight to the NIC instead of
+the kernel UDP stack, and the XDP rings are not overflowing, so 1024 descriptors is
+comfortably sized for this traffic. The same code path that error'd out with EINVAL
+during the upgrade now initializes clean.
+
+One aside on reading logs: a case-insensitive `grep -i xdp` over the journal was pure
+noise, because it matched gossip-table dumps where base58 validator pubkeys happen to
+contain the letters `xdp` (`4P8diDfWD1ra7bF8BXDP...`). The metrics lines were the real
+channel, not the grep.
+
+**One thing left, and it matters:** the ring size lives only in the NIC's running
+state. A reboot could bring the driver back at 1022 and the validator would crash-loop
+on startup while I sleep. So the `ethtool` ring fix goes in a small systemd oneshot
+ordered before the validator, enabled to run on every boot. One trap: `ethtool` exits
+non-zero when it changes nothing, so the unit must tolerate the no-op.
+With that in place the fix survives reboots.
+
+The four-wall chain from Break 1 is now fully closed: caps, memlock, ring size,
+running.
 
 ## What I learned
 
