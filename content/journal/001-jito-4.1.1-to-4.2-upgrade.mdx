@@ -69,8 +69,8 @@ ethtool -G ens3f0np0 rx 1024 tx 1024
 Three walls in, with a node that needs to be voting and not sitting in an XDP
 debugging session, I made the deliberate call to stop chasing it live. I ran with
 `--no-xdp` in the start script to get voting again immediately, and split the ring
-tuning off as its own task. `--no-xdp` is not the finished state; the `ethtool`
-change above is the resolution, deferred on purpose rather than ground on while
+tuning off as its own task. `--no-xdp` is not the finished state; I ran the `ethtool`
+fix, but deferred re-enabling XDP on purpose rather than ground on while
 credits are on the line.
 
 ## Break 2: the dashboard went blank (data side)
@@ -133,13 +133,15 @@ masked how much of the rest had quietly moved.
 
 ## Resolution: XDP is live
 
-Two days later, with the node stable, I went back to close the deferred ring-tuning
-task.
+Two days later, with the node stable, I went back to close the deferred XDP re-enable.
 
-**The ring was already at 1024.** Before touching anything I checked
-`ethtool -g ens3f0np0`, and the descriptors were already a power of two. Wall 3 had
-resolved itself somewhere between the incident and now, likely a driver reset; all
-that remained was making it stick across reboots.
+**The ring fix had held.** I had run the `ethtool -G` fix during the incident itself;
+what I deferred was re-enabling XDP, not the ring change. Checking
+`ethtool -g ens3f0np0` first confirmed the descriptors were still at 1024, because ring
+settings live in the NIC's running state and the box had not rebooted since. Which is
+exactly the fragile part: one reboot and the driver defaults back to 1022. So the
+remaining work was two things, turn XDP back on and make the ring setting survive
+reboots.
 
 Then: removed `--no-xdp` from the start script, `agave-validator exit --force`, and
 let systemd restart the process. `systemctl status` showed the override still
