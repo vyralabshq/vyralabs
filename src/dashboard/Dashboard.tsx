@@ -10,25 +10,21 @@ import { parseSnapshot, parseHistory } from "./parse";
 import { useNow } from "./hooks/useNow";
 import { useMetrics } from "./hooks/useMetrics";
 import { AwaitingState } from "./components/AwaitingState";
-import { status } from "./health";
-import { fmtInt, fmtPct, fmtSol, fmtCompact } from "./format";
+import { status, type Status } from "./health";
+import { fmtInt, fmtPct, fmtCompact } from "./format";
 import { StatusPills } from "./components/StatusPills";
 import { StatusHero, type Verdict } from "./components/StatusHero";
 import { PubkeyChip } from "./components/PubkeyChip";
 import type { DashboardState } from "./types";
 import { Banner } from "./components/Banner";
 import { Disclaimer } from "./components/Disclaimer";
-import { StatPanel, type Delta } from "./components/StatPanel";
+import { StatPanel } from "./components/StatPanel";
 import { InfoTip } from "./components/InfoTip";
 import { RecentVotes } from "./components/RecentVotes";
-import {
-  IconFinality,
-  IconVote,
-  IconDrop,
-  IconFork,
-  IconBalance,
-} from "./components/icons";
+import { IconVote } from "./components/icons";
 import { SystemStrip } from "./components/SystemStrip";
+import { NetworkStrip } from "./components/NetworkStrip";
+import { NodeCaughtUpStrip } from "./components/NodeCaughtUpStrip";
 import { VoteCredits } from "./components/VoteCredits";
 import { EventFeed } from "./components/EventFeed";
 import { lazy, Suspense } from "react";
@@ -49,13 +45,41 @@ const container = "relative z-10 mx-auto max-w-[1100px] px-4 sm:px-6";
 const sectionLabel =
   "mb-3 font-mono text-[11px] tracking-[0.16em] text-ink-muted";
 
-function behind(tip: number | null, snap: number | null): number | null {
-  return tip === null || snap === null ? null : tip - snap;
+const headlineTone: Record<Status, string> = {
+  ok: "text-ok",
+  warn: "text-accent-bright",
+  down: "text-down",
+};
+
+// Headline number for a LAST HOUR chart: gives each trend a current-value callout so the
+// chart is the supporting viz, not an orphan. Tinted + worded by status.
+function ChartHeadline({
+  value,
+  unit,
+  status: st,
+  words,
+}: {
+  value: string | null;
+  unit: string;
+  status: Status | null;
+  words: Record<Status, string>;
+}) {
+  const tone = st ? headlineTone[st] : "text-ink";
+  return (
+    <span className="flex items-baseline gap-1.5">
+      <span className={`font-display text-lg font-bold leading-none tabular-nums ${tone}`}>
+        {value ?? "—"}
+      </span>
+      <span className="font-mono text-[11px] text-ink-secondary">{unit}</span>
+      {st && value !== null && (
+        <span className={`font-mono text-[10px] ${tone}`}>{words[st]}</span>
+      )}
+    </span>
+  );
 }
 
-function meanOf(series: (number | null)[]): number | null {
-  const v = series.filter((x): x is number => x !== null);
-  return v.length === 0 ? null : v.reduce((a, b) => a + b, 0) / v.length;
+function behind(tip: number | null, snap: number | null): number | null {
+  return tip === null || snap === null ? null : tip - snap;
 }
 
 // Light exponential smoothing for the chart line only (the cards show raw values). Rounds
@@ -71,27 +95,6 @@ function ema(data: (number | null)[], alpha: number): (number | null)[] {
     prev = prev === null ? v : alpha * v + (1 - alpha) * prev;
     return prev;
   });
-}
-
-// An honest short-term trend chip: current value vs the window average. Returns undefined
-// when there is no history or the move is within `minAbs` (too small to be signal, not noise).
-function trendDelta(
-  current: number | null,
-  series: (number | null)[],
-  higherIsWorse: boolean,
-  minAbs: number,
-  fmt: (n: number) => string,
-): Delta | undefined {
-  const m = meanOf(series);
-  if (current === null || m === null) return undefined;
-  const d = current - m;
-  if (Math.abs(d) < minAbs) return undefined;
-  const rising = d > 0;
-  return {
-    arrow: rising ? "up" : "down",
-    good: higherIsWorse ? !rising : rising,
-    text: fmt(Math.abs(d)),
-  };
 }
 
 // Roll every signal into one headline verdict. Liveness wins first (stale/offline data
@@ -185,15 +188,8 @@ export default function Dashboard() {
           ? "lagging"
           : "delinquent";
 
-  // Smoothed finality-lag line for the history chart; raw series feeds the trend chip.
+  // Smoothed finality-lag line for the history chart.
   const finalityLagChart = ema(finalityLagSeries, 0.35);
-  const finalityDelta = trendDelta(
-    s.finalityLag,
-    finalityLagSeries,
-    true,
-    0.5,
-    (n) => Math.round(n).toString(),
-  );
 
   // Vote-credit economics for the current epoch (the SFDP-relevant view), derived from the
   // one in-progress epoch row. Efficiency = credits captured vs the theoretical max for the
@@ -432,32 +428,14 @@ export default function Dashboard() {
         {/* Node caught up: is it synced with the cluster and can it pay to vote */}
         <section className="mt-10">
           <p className={sectionLabel}>NODE CAUGHT UP</p>
-          <div className="grid grid-cols-1 gap-3 min-[440px]:grid-cols-2 md:grid-cols-3">
-            <StatPanel
-              label="TO FINALITY"
-              value={fmtInt(s.finalityLag)}
-              unit="slots"
-              status={status.finalityLag(s.finalityLag)}
-              icon={<IconFinality />}
-              delta={finalityDelta}
-              info="Gap between the slot your node has processed and the last finalized slot. Around 32 is normal; a growing gap means it's falling behind the cluster."
-              sub="processed vs finalized"
-            />
-            <StatPanel
-              label="PROCESSED SLOT"
-              value={fmtInt(s.processedSlot)}
-              info="The latest slot your node has processed (its view of the chain tip), with the last finalized slot below it."
-              sub={<>finalized {fmtInt(s.finalizedSlot) ?? "?"}</>}
-            />
-            <StatPanel
-              label="IDENTITY BALANCE"
-              value={fmtSol(s.identityBalanceSol, 2)}
-              status={status.balance(s.identityBalanceSol)}
-              icon={<IconBalance />}
-              info="SOL in the identity account. Every vote costs a small transaction fee, so this must never run dry or the node stops voting."
-              sub="pays vote fees"
-            />
-          </div>
+          <NodeCaughtUpStrip
+            finalityLag={s.finalityLag}
+            finalityStatus={status.finalityLag(s.finalityLag)}
+            processedSlot={s.processedSlot}
+            finalizedSlot={s.finalizedSlot}
+            identityBalanceSol={s.identityBalanceSol}
+            balanceStatus={status.balance(s.identityBalanceSol)}
+          />
         </section>
 
         {/* History: finality lag and drop rate over the last hour */}
@@ -470,10 +448,18 @@ export default function Dashboard() {
           >
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
               <div className="rounded-xl border border-accent/12 bg-surface/60 p-4 lg:col-span-2">
-                <p className="mb-1 flex items-center gap-1.5 text-[13px] text-ink-secondary">
-                  Finality lag (slots behind, shaded band is normal)
-                  <InfoTip text="Slots between the processed tip and the finalized tip, over the last hour. A steady line inside the shaded band means the node is tracking the cluster." />
-                </p>
+                <div className="mb-1 flex items-start justify-between gap-3">
+                  <p className="flex items-center gap-1.5 text-[13px] text-ink-secondary">
+                    Finality lag (slots behind, shaded band is normal)
+                    <InfoTip text="Slots between the processed tip and the finalized tip, over the last hour. A steady line inside the shaded band means the node is tracking the cluster." />
+                  </p>
+                  <ChartHeadline
+                    value={fmtInt(s.finalityLag)}
+                    unit="slots"
+                    status={status.finalityLag(s.finalityLag)}
+                    words={{ ok: "in band", warn: "elevated", down: "high" }}
+                  />
+                </div>
                 <TimeSeriesChart
                   times={times}
                   height={180}
@@ -492,10 +478,18 @@ export default function Dashboard() {
                 />
               </div>
               <div className="rounded-xl border border-accent/12 bg-surface/60 p-4">
-                <p className="mb-1 flex items-center gap-1.5 text-[13px] text-ink-secondary">
-                  Drop rate (%)
-                  <InfoTip text="Share of this node's leader blocks that were skipped rather than produced, over the last hour. At zero stake there are no leader slots, so it stays flat." />
-                </p>
+                <div className="mb-1 flex items-start justify-between gap-3">
+                  <p className="flex items-center gap-1.5 text-[13px] text-ink-secondary">
+                    Drop rate (%)
+                    <InfoTip text="Share of this node's leader blocks that were skipped rather than produced, over the last hour. At zero stake there are no leader slots, so it stays flat." />
+                  </p>
+                  <ChartHeadline
+                    value={fmtPct(s.dropRatePct, 1)}
+                    unit=""
+                    status={status.dropRate(s.dropRatePct)}
+                    words={{ ok: "nominal", warn: "elevated", down: "high" }}
+                  />
+                </div>
                 <TimeSeriesChart
                   times={times}
                   height={180}
@@ -517,27 +511,16 @@ export default function Dashboard() {
           </Suspense>
         </section>
 
-        {/* Machine resources + snapshot lag: the ops layer, below the validator vitals */}
+        {/* Machine resources + snapshot lag: the ops layer, below the validator vitals.
+            One dense panel — snapshot lag as a header row, disks, then load/uptime. */}
         <section className="mt-10">
           <p className={sectionLabel}>SYSTEM</p>
-          <div className="mb-3 grid grid-cols-1 gap-3 min-[440px]:grid-cols-2">
-            <StatPanel
-              label="INCR SNAPSHOT"
-              value={fmtInt(behind(s.processedSlot, s.incrementalSnapshotSlot))}
-              unit="slots behind"
-              info="How far behind the tip the node's latest incremental snapshot is. Snapshots let the node restart fast; a large gap means it hasn't snapshotted recently."
-            />
-            <StatPanel
-              label="FULL SNAPSHOT"
-              value={fmtInt(behind(s.processedSlot, s.fullSnapshotSlot))}
-              unit="slots behind"
-              info="How far behind the tip the last full snapshot is. Full snapshots are taken less often than incremental ones, so a bigger gap here is expected."
-            />
-          </div>
           <SystemStrip
             ledgerPct={s.ledgerDisk.pct}
             accountsPct={s.accountsDisk.pct}
             memoryPct={s.memory.pct}
+            incrBehind={behind(s.processedSlot, s.incrementalSnapshotSlot)}
+            fullBehind={behind(s.processedSlot, s.fullSnapshotSlot)}
             loadAvg={s.loadAvg}
             cpuCores={s.cpuCores}
             uptimeSeconds={s.uptimeSeconds}
@@ -550,36 +533,17 @@ export default function Dashboard() {
           <EventFeed events={s.events} now={now} />
         </section>
 
-        {/* Trivia + advanced signals last */}
+        {/* Trivia + advanced signals last: one dense strip, not three cards */}
         <section className="mt-10">
           <p className={sectionLabel}>NETWORK</p>
-          <div className="grid grid-cols-1 gap-3 min-[440px]:grid-cols-2 md:grid-cols-3">
-            <StatPanel
-              label="LEADER BLOCKS"
-              value={fmtInt(s.blocksProduced)}
-              unit="produced"
-              icon={<IconDrop />}
-              info="Blocks this validator produced during its leader slots. Leader slots are handed out in proportion to stake, so with zero stake there are none yet."
-              sub={
-                s.blocksProduced === 0 || s.blocksProduced === null
-                  ? "no leader slots at 0 stake"
-                  : `${fmtInt(s.blocksDropped) ?? 0} skipped`
-              }
-            />
-            <StatPanel
-              label="FORK WEIGHT"
-              value={fmtPct(s.forkWeightPct, 1)}
-              status={status.forkWeight(s.forkWeightPct)}
-              icon={<IconFork />}
-              info="Share of cluster stake voting on the same fork as your node. Near 100% means you are on the majority chain, not a minority fork."
-              sub="majority fork share"
-            />
-            <StatPanel
-              label="NETWORK TX TOTAL"
-              value={fmtCompact(s.networkTxTotal)}
-              info="Total transactions the whole cluster has processed since genesis. Network-wide context, not specific to your node."
-            />
-          </div>
+          <NetworkStrip
+            blocksProduced={s.blocksProduced}
+            blocksDropped={s.blocksDropped}
+            forkWeightPct={s.forkWeightPct}
+            forkStatus={status.forkWeight(s.forkWeightPct)}
+            networkTxTotal={s.networkTxTotal}
+            txHistory={pts.map((p) => p.txPerSlot)}
+          />
         </section>
 
         <footer className="mt-16 border-t border-accent/10 pt-8">
