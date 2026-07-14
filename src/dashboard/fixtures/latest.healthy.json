@@ -64,18 +64,43 @@
   "vote_account": {
     "stale": false,
     "fetched_at": "2026-07-08T09:58:37Z",
-    "credits_lifetime": 1898792,
+    "credits_lifetime": 22950000,
     "commission_pct": 100,
     "activated_stake_sol": 500.0,
     "epoch_credits": [
       {
         "epoch": 986,
-        "credits": 658805,
+        "credits": 2300000,
         "max": 6912000
       },
       {
         "epoch": 985,
-        "credits": 1239987,
+        "credits": 5750000,
+        "max": 6912000
+      },
+      {
+        "epoch": 984,
+        "credits": 5050000,
+        "max": 6912000
+      },
+      {
+        "epoch": 983,
+        "credits": 3900000,
+        "max": 6912000
+      },
+      {
+        "epoch": 982,
+        "credits": 2950000,
+        "max": 6912000
+      },
+      {
+        "epoch": 981,
+        "credits": 2050000,
+        "max": 6912000
+      },
+      {
+        "epoch": 980,
+        "credits": 950000,
         "max": 6912000
       }
     ],

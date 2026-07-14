@@ -4,12 +4,29 @@ import { Missing } from "./Missing";
 import { InfoTip } from "./InfoTip";
 
 // Vote performance. Commission carries a badge (not a footnote) so 100% reads as the
-// testnet config it is, never a real economic setting. Per-epoch credits are shown as a
-// rate: the current epoch as "on pace" (credits vs how far the epoch has run), completed
-// epochs as "earned" (credits vs max). This source has its own 5-minute cadence, so it
-// shows its own "as of" age; when the collector marked it stale the whole panel dims.
+// testnet config it is, never a real economic setting. Per-epoch credits render as a
+// column chart: epochs on the X-axis, percent-of-max on a fixed 0-100 Y-axis so short
+// bars honestly show headroom. Completed epochs are "earned" (credits vs max); the
+// current epoch is "on pace" (a projection: credits so far vs how far the epoch has run)
+// and gets a dashed ghost to signal it is not a settled value. Bars are colored by tier
+// so the ramp reads at a glance. This source has its own 5-minute cadence, so it shows
+// its own "as of" age; when the collector marked it stale the whole panel dims.
 
-function CreditRow({
+// Color tiers by percent. One place to tune the red/amber/green cutoffs.
+const CREDIT_TIERS = [
+  { min: 75, bar: "bg-ok", text: "text-ok" },
+  { min: 40, bar: "bg-accent", text: "text-accent" },
+  { min: 0, bar: "bg-down", text: "text-down" },
+];
+
+function creditTier(pct: number) {
+  return (
+    CREDIT_TIERS.find((t) => pct >= t.min) ??
+    CREDIT_TIERS[CREDIT_TIERS.length - 1]
+  );
+}
+
+function CreditColumn({
   c,
   currentEpoch,
   progressPct,
@@ -19,7 +36,8 @@ function CreditRow({
   progressPct: number | null;
 }) {
   const inProgress = c.epoch !== null && c.epoch === currentEpoch;
-  const earned = c.credits !== null && c.max && c.max > 0 ? c.credits / c.max : null;
+  const earned =
+    c.credits !== null && c.max && c.max > 0 ? c.credits / c.max : null;
   const progressFrac = progressPct === null ? null : progressPct / 100;
 
   const onPace =
@@ -27,32 +45,43 @@ function CreditRow({
       ? Math.min(1, earned / progressFrac)
       : null;
 
-  const barFrac = inProgress ? onPace : earned;
-  const rightLabel =
-    inProgress && onPace !== null
-      ? `on pace ${Math.round(onPace * 100)}%`
-      : earned !== null
-        ? `earned ${Math.round(earned * 100)}%`
-        : null;
+  const frac = inProgress ? onPace : earned;
+  const pct = frac === null ? null : Math.max(0, Math.min(100, frac * 100));
+  const tier = pct === null ? null : creditTier(pct);
+  const label = pct === null ? "—" : `${Math.round(pct)}%`;
 
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center justify-between font-mono text-[11px]">
-        <span className="flex items-center gap-1.5 text-ink-secondary">
-          epoch {c.epoch ?? "?"}
+    <div className="flex w-12 flex-col items-center gap-2">
+      {/* Bar cell: full-height track. Fill grows from the baseline to pct%; the label
+          rides its top; the in-progress ghost dashes the whole track to mark the 100%
+          target the on-pace projection is climbing toward. */}
+      <div className="relative flex h-28 w-full justify-center">
+        <div className="relative h-full w-7">
           {inProgress && (
-            <span className="rounded-full border border-accent/30 px-1.5 py-px text-[10px] text-accent">
-              in progress
-            </span>
+            <div className="absolute inset-0 rounded-t border border-dashed border-ok/35" />
           )}
-        </span>
-        <span className="text-ink-muted">{rightLabel}</span>
+          <div
+            className={`absolute bottom-0 w-full rounded-t ${tier ? tier.bar : "bg-elevated"} ${inProgress ? "opacity-90" : ""}`}
+            style={{ height: `${pct ?? 0}%`, minHeight: pct === null ? 0 : 3 }}
+          />
+          <span
+            className={`absolute w-full -translate-y-1 text-center font-mono text-[10px] tabular-nums ${tier ? tier.text : "text-ink-muted"}`}
+            style={{ bottom: `${pct ?? 0}%` }}
+          >
+            {label}
+          </span>
+        </div>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-elevated">
-        <div
-          className="h-full rounded-full bg-accent"
-          style={{ width: `${barFrac === null ? 0 : Math.max(0, Math.min(100, barFrac * 100))}%` }}
-        />
+      {/* X-axis: epoch number, current epoch flagged. */}
+      <div className="flex flex-col items-center gap-0.5">
+        <span className="font-mono text-[10px] text-ink-secondary">
+          {c.epoch ?? "?"}
+        </span>
+        {inProgress && (
+          <span className="rounded-full border border-accent/30 px-1 py-px text-[8px] leading-none text-accent">
+            live
+          </span>
+        )}
       </div>
     </div>
   );
@@ -133,18 +162,24 @@ export function VoteCredits({
         {epochCredits.length === 0 ? (
           <Missing />
         ) : (
-          // Newest epoch on top.
-          epochCredits
-            .map((c, i) => ({ c, i }))
-            .reverse()
-            .map(({ c, i }) => (
-              <CreditRow
-                key={c.epoch ?? i}
-                c={c}
-                currentEpoch={currentEpoch}
-                progressPct={progressPct}
-              />
-            ))
+          // Column chart: oldest → newest, left → right, capped to the newest 8 epochs
+          // (~2 weeks) — enough to read the trend, few enough that each bar carries
+          // signal. Fixed-width columns centered so a thin history reads as an
+          // intentional cluster, not stretched to the panel edges. pt gives the tallest
+          // bar's label headroom; bars share a bottom baseline.
+          <div className="flex items-end justify-center gap-4 overflow-x-auto pt-6">
+            {[...epochCredits]
+              .sort((a, b) => (a.epoch ?? 0) - (b.epoch ?? 0))
+              .slice(-8)
+              .map((c, i) => (
+                <CreditColumn
+                  key={c.epoch ?? i}
+                  c={c}
+                  currentEpoch={currentEpoch}
+                  progressPct={progressPct}
+                />
+              ))}
+          </div>
         )}
       </div>
     </div>

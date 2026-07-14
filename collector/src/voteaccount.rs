@@ -12,6 +12,11 @@ use serde_json::Value;
 
 use crate::schema::{EpochCredit, RecentVote};
 
+/// Keep only the newest N epochs of credit history. A vote account can retain up to 64
+/// epochs on-chain; the dashboard only charts the recent trend, so bound the snapshot
+/// payload here. Matches the dashboard's own window.
+const EPOCH_CREDITS_KEEP: usize = 8;
+
 /// Agave 4.2 wraps per-epoch (and per-vote) objects under a consensus-type key
 /// (`tower` today, `votor` after Alpenglow). Return the inner object if a known
 /// wrapper is present, else the value itself (flat pre-4.2 shape).
@@ -39,7 +44,8 @@ pub fn parse_vote_account(json: &str) -> Option<VoteAccountData> {
     let v: Value = serde_json::from_str(json).ok()?;
 
     let epoch_credits = v["epochVotingHistory"].as_array().map(|arr| {
-        arr.iter()
+        let mut credits: Vec<EpochCredit> = arr
+            .iter()
             .map(|e| {
                 // Agave 4.2 nests each entry under a consensus-type wrapper
                 // ("tower" now, "votor" once Alpenglow lands). Older builds were flat.
@@ -53,7 +59,14 @@ pub fn parse_vote_account(json: &str) -> Option<VoteAccountData> {
                     max: per_slot.zip(slots).map(|(p, s)| p * s),
                 }
             })
-            .collect()
+            .collect();
+        // Bound the payload to the newest EPOCH_CREDITS_KEEP epochs, regardless of the
+        // order the CLI emits them (sort ascending by epoch, drop the oldest overflow).
+        credits.sort_by_key(|c| c.epoch);
+        if credits.len() > EPOCH_CREDITS_KEEP {
+            credits.drain(0..credits.len() - EPOCH_CREDITS_KEEP);
+        }
+        credits
     });
 
     // Recent votes: 4.2 nests the array under `votesObserved.Tower` (a `Votor` sibling
