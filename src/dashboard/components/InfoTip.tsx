@@ -16,7 +16,11 @@ export function InfoTip({ text }: { text: string }) {
       <button
         type="button"
         aria-label={text}
-        className="flex h-3.5 w-3.5 cursor-help items-center justify-center rounded-full border border-ink-muted/50 font-mono text-[9px] leading-none text-ink-muted transition-colors hover:border-accent hover:text-accent focus:border-accent focus:text-accent focus:outline-none"
+        // The marker stays 14px so it never shouts next to a label, but the pressable area
+        // is extended to 44px (WCAG) with a pseudo-element. At 14px this was a ~10% target
+        // and effectively unhittable on touch — and it is the only thing explaining what any
+        // metric on this page means.
+        className="relative flex h-3.5 w-3.5 cursor-help items-center justify-center rounded-full border border-ink-muted/50 font-mono text-[9px] leading-none text-ink-muted transition-colors before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-[''] hover:border-accent hover:text-accent focus:border-accent focus:text-accent focus:outline-none"
       >
         ?
       </button>

@@ -130,7 +130,7 @@ export function RecentVotes({
                     : `slot ${c.slot} · latency ${c.latency ?? "?"}`
                 }
                 style={{ height: `${heightPct(c)}%` }}
-                className={`min-w-0 flex-1 rounded-[2px] ${c.missed ? "border border-dashed border-down/60" : toneFor(c.latency)}`}
+                className={`min-w-0 flex-1 rounded-sm ${c.missed ? "border border-dashed border-down/60" : toneFor(c.latency)}`}
               />
             ))}
           </div>
@@ -143,7 +143,7 @@ export function RecentVotes({
           <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] text-ink-muted">
             {legend.map((l) => (
               <span key={l.label} className="inline-flex items-center gap-1.5">
-                <span className={`h-2.5 w-2.5 rounded-[2px] ${l.cls}`} />
+                <span className={`h-2.5 w-2.5 rounded-sm ${l.cls}`} />
                 {l.label}
               </span>
             ))}

@@ -41,10 +41,15 @@ export function StatusHero({
 }) {
   return (
     <div className="flex flex-col gap-2 md:items-end md:text-right">
-      <div className="flex items-center gap-2.5">
-        <span className={`h-2 w-2 rounded-full ${DOT[tone]}`} aria-hidden="true" />
+      {/* The focal point of the whole page. "Is my node OK?" is the one question a visitor
+          came to answer, so the verdict has to win outright — it used to sit at 22px, the
+          same size as four other things and smaller than the section headline, which meant
+          nothing led. Size + weight + the one tinted colour on the page carry it; negative
+          tracking keeps a large word from reading like a document heading. */}
+      <div className="flex items-center gap-3">
+        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${DOT[tone]}`} aria-hidden="true" />
         <span
-          className={`font-display text-[22px] font-bold tracking-tight ${TONE[tone]}`}
+          className={`font-display text-[clamp(30px,4vw,40px)] font-bold leading-none tracking-[-0.02em] ${TONE[tone]}`}
         >
           {word}
         </span>

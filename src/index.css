@@ -14,9 +14,14 @@
   --color-ok: #6bbf7e;
   --color-down: #e0705f;
 
-  /* Text */
+  /* Text — four levels. Three was too flat: `ink-secondary` had to serve as both supporting
+     copy and metadata, so the two collapsed together and the page read as one muted tone
+     with occasional highlights. `ink-tertiary` gives metadata its own step and lets
+     `ink-secondary` go back to being genuinely secondary. Same warm hue throughout, only
+     lightness moves. */
   --color-ink: #fdf3e8;
-  --color-ink-secondary: #b89274;
+  --color-ink-secondary: #cbab8e;
+  --color-ink-tertiary: #97764f;
   --color-ink-muted: #6e503a;
 
   /* Fonts */
@@ -52,7 +57,10 @@
    this is a refactor with no visual change. Utilities still layer on top: `hover:` variants
    carry a pseudo-class so they outrank this and keep working. */
 @utility panel {
-  border-radius: var(--radius-xl);
+  /* 14px, not 12: the panel pads by 8 (p-2 strips) to 16 (p-4 cards), and children sit at
+     6-8px radius. outer = inner + padding keeps nested corners concentric instead of the
+     child's curve fighting the parent's. */
+  border-radius: 14px;
   border: 1px solid color-mix(in oklab, var(--color-accent) 12%, transparent);
   background-color: color-mix(in oklab, var(--color-surface) 60%, transparent);
 }
