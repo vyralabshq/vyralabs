@@ -189,7 +189,38 @@ function App() {
             >
               {hero.secondaryCta.label}
             </a>
+
           </div>
+
+          {/* Aside under the primary CTA, curving back up at it. It sits below rather than
+              beside the buttons because "See the Node" is the button it is about, and from
+              the right of the row the arrow would have to reach across the second CTA to get
+              there. Earns its place only because the claim is checkable: the collector writes
+              a fresh snapshot every 10s, so the dashboard is the node, not a picture of one.
+              Decorative — hidden from screen readers, and from narrow screens where the
+              buttons wrap. */}
+          <span
+            aria-hidden="true"
+            className="pointer-events-none ml-6 hidden select-none items-start gap-1.5 text-ink-muted sm:flex"
+          >
+            <svg width="34" height="30" viewBox="0 0 34 30" fill="none">
+              <path
+                d="M31 27C18 25 7 19 4 4"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+              />
+              <path
+                d="M4 3.5 1.5 11M4 3.5 10 7"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="mt-3.5 -rotate-3 font-mono text-[11px] leading-[1.5] tracking-[0.02em] whitespace-pre-line">
+              {hero.ctaNote}
+            </span>
+          </span>
         </section>
 
         {/* The lab: the stated goal, verbatim, as the resonant statement of intent. */}

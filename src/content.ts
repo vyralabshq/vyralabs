@@ -22,6 +22,11 @@ export const hero = {
     "We run a Solana validator in the open and build the tooling that keeps it healthy. Every benchmark, deployment, failure, and lesson, shared openly.",
   primaryCta: { label: "See the Node", href: "/dashboard" },
   secondaryCta: { label: "Read the Field Notes", href: "/logs" },
+  // Annotation beside the primary CTA. Must stay literally true: the collector writes a
+  // fresh snapshot every 10s, so this is a checkable claim, not a marketing number.
+  // Explicit break: greedy wrapping would split this as "live node, not a /
+  // screenshot". Rendered with whitespace-pre-line.
+  ctaNote: "live node,\nnot a screenshot",
 };
 
 // The long-form stated goal, presented as the resonant statement. Split so the signature
