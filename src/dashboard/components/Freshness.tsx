@@ -26,7 +26,7 @@ export function Freshness({
   liveness: Liveness;
 }) {
   return (
-    <div className="flex items-center gap-2.5 text-xs text-ink-muted">
+    <div className="flex items-center gap-2.5 text-xs text-ink-tertiary">
       <span>Updated {formatAge(ageSeconds)}</span>
       <span className={`rounded-full border px-2 py-0.5 font-mono text-[11px] ${BADGE[liveness]}`}>
         {liveness.toLowerCase()}

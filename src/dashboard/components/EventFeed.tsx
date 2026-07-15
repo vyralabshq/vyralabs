@@ -50,7 +50,7 @@ export function EventFeed({ events, now }: { events: EventItem[]; now: Date }) {
           no events in the last hour
         </span>
         {newestTs !== null && (
-          <span className="text-ink-muted">
+          <span className="text-ink-tertiary">
             last {ago(new Date(newestTs).toISOString(), now)}
           </span>
         )}
@@ -67,7 +67,7 @@ export function EventFeed({ events, now }: { events: EventItem[]; now: Date }) {
     >
       <div className="flex items-center justify-between">
         <h3 className="font-display text-[15px] font-bold text-ink">Recent events</h3>
-        <span className="font-mono text-[11px] text-ink-muted">
+        <span className="font-mono text-[11px] text-ink-tertiary">
           {lastHour} in last hour · {last10m} in last 10m
         </span>
       </div>
@@ -87,7 +87,7 @@ export function EventFeed({ events, now }: { events: EventItem[]; now: Date }) {
             <span className="min-w-0 flex-1 break-words text-ink-secondary">
               {e.msg}
             </span>
-            <span className="shrink-0 font-mono text-[11px] text-ink-muted">
+            <span className="shrink-0 font-mono text-[11px] text-ink-tertiary">
               {ago(e.ts, now)}
             </span>
           </li>

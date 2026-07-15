@@ -95,7 +95,7 @@ export function RecentVotes({
         </div>
       ) : (
         <>
-          <div className="font-mono text-[11px] text-ink-muted">
+          <div className="font-mono text-[11px] text-ink-tertiary">
             {avgLatency === null ? (
               "no latency data"
             ) : (
@@ -134,13 +134,13 @@ export function RecentVotes({
               />
             ))}
           </div>
-          <div className="mt-1.5 flex justify-between font-mono text-[9px] tracking-[0.06em] text-ink-muted">
+          <div className="mt-1.5 flex justify-between font-mono text-[9px] tracking-[0.06em] text-ink-tertiary">
             <span>oldest</span>
             <span>latency: taller = later</span>
             <span>newest</span>
           </div>
 
-          <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] text-ink-muted">
+          <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] text-ink-tertiary">
             {legend.map((l) => (
               <span key={l.label} className="inline-flex items-center gap-1.5">
                 <span className={`h-2.5 w-2.5 rounded-sm ${l.cls}`} />

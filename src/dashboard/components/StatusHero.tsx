@@ -55,7 +55,7 @@ export function StatusHero({
         </span>
       </div>
       <p className="text-[13px] text-ink-secondary">{detail}</p>
-      <div className="flex items-center gap-2 font-mono text-[11px] text-ink-muted">
+      <div className="flex items-center gap-2 font-mono text-[11px] text-ink-tertiary">
         <span className="tracking-[0.1em]">{cluster ?? "testnet"}</span>
         <span aria-hidden="true">·</span>
         <span className={`rounded-full border px-2 py-0.5 ${LIVE[liveness]}`}>

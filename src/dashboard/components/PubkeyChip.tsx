@@ -52,10 +52,10 @@ export function PubkeyChip({ label, value }: { label: string; value: string | nu
       title={value ?? undefined}
       className="group inline-flex items-center gap-2 rounded-md border border-accent/15 bg-surface px-2.5 py-1.5 font-mono text-xs text-ink-secondary transition-colors hover:border-accent/40 hover:text-ink disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
     >
-      <span className="text-ink-muted">{label}</span>
+      <span className="text-ink-tertiary">{label}</span>
       <span>{value ? shorten(value) : "not available"}</span>
       <span
-        className={`transition-colors ${copied ? "text-ok" : "text-ink-muted group-hover:text-accent"}`}
+        className={`transition-colors ${copied ? "text-ok" : "text-ink-tertiary group-hover:text-accent"}`}
       >
         <CopyGlyph copied={copied} />
       </span>

@@ -161,7 +161,7 @@ export function DonutChart({
             </span>
           )}
           {centerBottom && (
-            <span className="mt-1 font-mono text-[10px] tracking-[0.1em] text-ink-muted">
+            <span className="mt-1 font-mono text-[10px] tracking-[0.1em] text-ink-tertiary">
               {centerBottom}
             </span>
           )}

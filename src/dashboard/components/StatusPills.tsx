@@ -15,7 +15,7 @@ function Pill({ label, state }: { label: string; state: PillState }) {
       : "border border-dashed border-ink-muted";
 
   const word = down ? "down" : state === null ? "no data" : null;
-  const wordColor = down ? "text-down" : "text-ink-muted";
+  const wordColor = down ? "text-down" : "text-ink-tertiary";
 
   return (
     <span
@@ -49,7 +49,7 @@ export function StatusPills({
       <Pill label="Process active" state={processActive} />
       {version && (
         <span className="inline-flex items-center gap-2 rounded-full border border-accent/15 bg-surface px-3.5 py-1.5 font-mono text-[12px] tabular-nums text-ink-secondary">
-          <span className="tracking-[0.08em] text-ink-muted">client</span>
+          <span className="tracking-[0.08em] text-ink-tertiary">client</span>
           Jito {version}
         </span>
       )}

@@ -51,7 +51,7 @@ export function StatPanel({
       className={`flex flex-col justify-between panel p-4 transition-opacity ${dim ? "opacity-45" : ""}`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-2 font-mono text-[11px] tracking-[0.12em] text-ink-muted">
+        <span className="flex items-center gap-2 font-mono text-[11px] tracking-[0.12em] text-ink-tertiary">
           {icon ? (
             <span
               className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-elevated ${status ? iconTone[status] : "text-accent"}`}

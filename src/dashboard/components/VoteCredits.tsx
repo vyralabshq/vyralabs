@@ -115,7 +115,7 @@ export function VoteCredits({
           Vote credits
           <InfoTip text="Vote credits are how a validator earns rewards: one per vote that lands on time (up to 16 per slot). Lifetime is the running total; the bars below are per epoch." />
         </h3>
-        <div className="flex items-center gap-2 font-mono text-[11px] text-ink-muted">
+        <div className="flex items-center gap-2 font-mono text-[11px] text-ink-tertiary">
           <span>as of {fmtAge(fetchedAgeSeconds)}</span>
           {stale && (
             <span className="rounded-full border border-down/40 px-1.5 py-0.5 text-down">
@@ -127,7 +127,7 @@ export function VoteCredits({
 
       <div className="grid grid-cols-3 gap-3">
         <div>
-          <div className="font-mono text-[10px] tracking-[0.1em] text-ink-muted">
+          <div className="font-mono text-[10px] tracking-[0.1em] text-ink-tertiary">
             LIFETIME
           </div>
           <div className="mt-1 font-display text-lg font-bold tabular-nums text-ink">
@@ -135,7 +135,7 @@ export function VoteCredits({
           </div>
         </div>
         <div>
-          <div className="font-mono text-[10px] tracking-[0.1em] text-ink-muted">
+          <div className="font-mono text-[10px] tracking-[0.1em] text-ink-tertiary">
             COMMISSION
           </div>
           <div className="mt-1 font-display text-lg font-bold tabular-nums text-ink">
@@ -146,7 +146,7 @@ export function VoteCredits({
           </span>
         </div>
         <div>
-          <div className="font-mono text-[10px] tracking-[0.1em] text-ink-muted">
+          <div className="font-mono text-[10px] tracking-[0.1em] text-ink-tertiary">
             STAKE
           </div>
           <div className="mt-1 font-display text-lg font-bold tabular-nums text-ink">
@@ -156,7 +156,7 @@ export function VoteCredits({
       </div>
 
       <div className="flex flex-col gap-3 border-t border-accent/10 pt-3">
-        <span className="font-mono text-[10px] tracking-[0.12em] text-ink-muted">
+        <span className="font-mono text-[10px] tracking-[0.12em] text-ink-tertiary">
           CREDITS PER EPOCH
         </span>
         {epochCredits.length === 0 ? (
@@ -178,7 +178,7 @@ export function VoteCredits({
               <div className="pointer-events-none absolute inset-x-0 top-0 flex h-28 flex-col justify-between">
                 {[100, 75, 50, 25].map((v) => (
                   <div key={v} className="relative border-t border-accent/10">
-                    <span className="absolute -top-1.5 left-0 font-mono text-[8px] text-ink-muted">
+                    <span className="absolute -top-1.5 left-0 font-mono text-[8px] text-ink-tertiary">
                       {v}
                     </span>
                   </div>

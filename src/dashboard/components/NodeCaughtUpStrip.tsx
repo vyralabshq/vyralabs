@@ -32,7 +32,7 @@ export function NodeCaughtUpStrip({
   return (
     <StatStrip>
       <span className="flex items-baseline gap-1.5">
-        <span className="text-[11px] tracking-[0.08em] text-ink-muted">to finality</span>
+        <span className="text-[11px] tracking-[0.08em] text-ink-tertiary">to finality</span>
         <span className={`tabular-nums ${finalityStatus ? tone[finalityStatus] : "text-ink"}`}>
           {fmtInt(finalityLag) ?? <Missing />}
         </span>
@@ -41,14 +41,14 @@ export function NodeCaughtUpStrip({
       </span>
 
       <span className="flex items-baseline gap-1.5">
-        <span className="text-[11px] tracking-[0.08em] text-ink-muted">processed</span>
+        <span className="text-[11px] tracking-[0.08em] text-ink-tertiary">processed</span>
         <span className="tabular-nums text-ink">{fmtInt(processedSlot) ?? <Missing />}</span>
         <span className="text-xs text-ink-secondary">finalized {fmtInt(finalizedSlot) ?? "?"}</span>
         <InfoTip text="The latest slot your node has processed (its view of the chain tip), with the last finalized slot alongside." />
       </span>
 
       <span className="flex items-baseline gap-1.5">
-        <span className="text-[11px] tracking-[0.08em] text-ink-muted">identity</span>
+        <span className="text-[11px] tracking-[0.08em] text-ink-tertiary">identity</span>
         <span className={`tabular-nums ${balanceStatus ? tone[balanceStatus] : "text-ink"}`}>
           {fmtSol(identityBalanceSol, 2) ?? <Missing />}
         </span>
