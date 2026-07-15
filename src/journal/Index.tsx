@@ -19,7 +19,7 @@ function PostCard({ p, featured = false }: { p: Post; featured?: boolean }) {
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 font-mono text-[10px] tracking-[0.08em] text-ink-muted">
+        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 font-mono text-[10px] tracking-[0.08em] text-ink-tertiary">
           {fm.number != null && (
             <span className="text-accent">
               {String(fm.number).padStart(3, "0")}
@@ -31,7 +31,7 @@ function PostCard({ p, featured = false }: { p: Post; featured?: boolean }) {
         </div>
         <span
           aria-hidden="true"
-          className="shrink-0 font-mono text-[12px] leading-none text-ink-muted transition-colors group-hover:text-accent"
+          className="shrink-0 font-mono text-[12px] leading-none text-ink-tertiary transition-colors group-hover:text-accent"
         >
           ↗
         </span>
@@ -60,7 +60,7 @@ function PostCard({ p, featured = false }: { p: Post; featured?: boolean }) {
           {fm.tags.slice(0, featured ? 6 : 3).map((t) => (
             <span
               key={t}
-              className="rounded-full border border-accent/15 bg-elevated px-1.5 py-0.5 font-mono text-[9px] tracking-[0.04em] text-ink-muted"
+              className="rounded-full border border-accent/15 bg-elevated px-1.5 py-0.5 font-mono text-[9px] tracking-[0.04em] text-ink-tertiary"
             >
               {t}
             </span>
@@ -92,7 +92,7 @@ export function Index() {
 
       <section className="border-t border-accent/10 pt-8">
         {posts.length === 0 ? (
-          <p className="py-10 font-mono text-sm text-ink-muted">
+          <p className="py-10 font-mono text-sm text-ink-tertiary">
             No notes published yet.
           </p>
         ) : (

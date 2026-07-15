@@ -14,7 +14,7 @@ export function PostPage() {
     return (
       <Chrome width="max-w-[720px]">
         <div className="py-20">
-          <p className="font-mono text-sm text-ink-muted">Note not found.</p>
+          <p className="font-mono text-sm text-ink-tertiary">Note not found.</p>
           <Link
             to="/"
             className="mt-4 inline-block font-mono text-sm text-accent hover:text-accent-bright"
@@ -34,13 +34,13 @@ export function PostPage() {
       <article className="pt-8 pb-4">
         <Link
           to="/"
-          className="inline-block font-mono text-[13px] text-ink-muted transition-colors hover:text-accent"
+          className="inline-block font-mono text-[13px] text-ink-tertiary transition-colors hover:text-accent"
         >
           ← field notes
         </Link>
 
         <header className="mt-8 border-b border-accent/10 pb-8">
-          <div className="flex flex-wrap items-baseline gap-3 font-mono text-[11px] tracking-[0.08em] text-ink-muted">
+          <div className="flex flex-wrap items-baseline gap-3 font-mono text-[11px] tracking-[0.08em] text-ink-tertiary">
             {fm.number != null && (
               <span className="text-accent">
                 {String(fm.number).padStart(3, "0")}
@@ -65,7 +65,7 @@ export function PostPage() {
             </p>
           )}
           {fm.tags && fm.tags.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-2 font-mono text-[11px] text-ink-muted">
+            <div className="mt-2 flex flex-wrap gap-2 font-mono text-[11px] text-ink-tertiary">
               {fm.tags.map((t) => (
                 <span key={t}>#{t}</span>
               ))}

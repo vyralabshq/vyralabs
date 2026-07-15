@@ -25,8 +25,8 @@ const STATUS_TONE: Record<string, { dot: string; text: string }> = {
   PUBLISHED: { dot: "bg-accent", text: "text-accent" },
   LIVE: { dot: "bg-accent", text: "text-accent" },
   "IN PROGRESS": { dot: "bg-accent-bright", text: "text-accent-bright" },
-  SOON: { dot: "bg-ink-muted", text: "text-ink-muted" },
-  UPCOMING: { dot: "bg-ink-muted", text: "text-ink-muted" },
+  SOON: { dot: "bg-ink-muted", text: "text-ink-tertiary" },
+  UPCOMING: { dot: "bg-ink-muted", text: "text-ink-tertiary" },
 };
 
 const svg = {
@@ -201,7 +201,7 @@ function App() {
               buttons wrap. */}
           <span
             aria-hidden="true"
-            className="pointer-events-none ml-6 hidden select-none items-start gap-1.5 text-ink-muted sm:flex"
+            className="pointer-events-none ml-6 hidden select-none items-start gap-1.5 text-ink-tertiary sm:flex"
           >
             <svg width="34" height="30" viewBox="0 0 34 30" fill="none">
               <path
@@ -287,7 +287,7 @@ function App() {
                       <Icon />
                     </span>
                     {!feature && (
-                      <span className="font-mono text-[11px] tracking-[0.2em] text-ink-muted">
+                      <span className="font-mono text-[11px] tracking-[0.2em] text-ink-tertiary">
                         0{i + 1}
                       </span>
                     )}
@@ -370,12 +370,12 @@ function App() {
                     {card.phase.replace("PHASE ", "")}
                   </span>
                   <div className="relative flex items-center justify-between">
-                    <span className="font-mono text-[11px] tracking-[0.18em] text-ink-muted">
+                    <span className="font-mono text-[11px] tracking-[0.18em] text-ink-tertiary">
                       {card.phase} · {card.label}
                     </span>
                     <span
                       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[10px] tracking-[0.1em] ${
-                        live ? "border-accent/40 text-accent" : "border-ink-muted/40 text-ink-muted"
+                        live ? "border-accent/40 text-accent" : "border-ink-muted/40 text-ink-tertiary"
                       }`}
                     >
                       {live && <span className="h-1.5 w-1.5 rounded-full bg-accent" />}
@@ -387,7 +387,7 @@ function App() {
                   </h3>
                   <p
                     className={`relative mt-1 mb-4 font-mono text-xs tracking-widest ${
-                      live ? "text-accent" : "text-ink-muted"
+                      live ? "text-accent" : "text-ink-tertiary"
                     }`}
                   >
                     {card.target}
@@ -404,7 +404,7 @@ function App() {
                         </span>
                       </span>
                     ) : (
-                      <span className="font-mono text-[11px] text-ink-muted">{card.note}</span>
+                      <span className="font-mono text-[11px] text-ink-tertiary">{card.note}</span>
                     )}
                   </div>
                 </>
@@ -439,7 +439,7 @@ function App() {
               className="group mb-6 block rounded-2xl border border-accent/12 bg-surface/70 p-6 transition-colors hover:border-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
             >
               <div className="flex items-start justify-between gap-4">
-                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-[11px] tracking-[0.08em] text-ink-muted">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-[11px] tracking-[0.08em] text-ink-tertiary">
                   {latest.frontmatter.number != null && (
                     <span className="text-accent">
                       {String(latest.frontmatter.number).padStart(3, "0")}
@@ -452,7 +452,7 @@ function App() {
                 </div>
                 <span
                   aria-hidden="true"
-                  className="shrink-0 font-mono text-[13px] leading-none text-ink-muted transition-colors group-hover:text-accent"
+                  className="shrink-0 font-mono text-[13px] leading-none text-ink-tertiary transition-colors group-hover:text-accent"
                 >
                   ↗
                 </span>
@@ -558,7 +558,7 @@ function App() {
         </div>
 
         <div className="mt-12 border-t border-accent/10 pt-6">
-          <p className="font-mono text-xs tracking-[0.06em] text-ink-muted">
+          <p className="font-mono text-xs tracking-[0.06em] text-ink-tertiary">
             {footer.missionLine}
           </p>
         </div>

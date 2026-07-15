@@ -111,7 +111,7 @@ export function Chrome({
             </a>
           </nav>
         </div>
-        <p className="mt-8 font-mono text-[11px] text-ink-muted">
+        <p className="mt-8 font-mono text-[11px] text-ink-tertiary">
           Vyra Labs. Solana validator infrastructure, built in public.
         </p>
       </footer>
