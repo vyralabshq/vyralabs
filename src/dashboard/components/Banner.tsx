@@ -5,7 +5,7 @@ export function Banner({ message }: { message: string }) {
   return (
     <div
       role="alert"
-      className="rounded-lg border border-accent/40 bg-[linear-gradient(180deg,rgba(247,127,27,0.08),#1c1209)] px-4 py-3 font-mono text-xs text-ink-secondary"
+      className="rounded-lg border border-accent/40 bg-[linear-gradient(180deg,color-mix(in_oklab,var(--color-accent)_8%,transparent),var(--color-elevated))] px-4 py-3 font-mono text-xs text-ink-secondary"
     >
       {message}
     </div>
