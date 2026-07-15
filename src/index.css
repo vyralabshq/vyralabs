@@ -46,6 +46,17 @@
   }
 }
 
+/* The panel shell: the bordered surface every dashboard card, strip, and journal card sits
+   on. Defined once because it was nine copies of the same class string and had already
+   started to drift. Colours mirror what `border-accent/12` + `bg-surface/60` compile to, so
+   this is a refactor with no visual change. Utilities still layer on top: `hover:` variants
+   carry a pseudo-class so they outrank this and keep working. */
+@utility panel {
+  border-radius: var(--radius-xl);
+  border: 1px solid color-mix(in oklab, var(--color-accent) 12%, transparent);
+  background-color: color-mix(in oklab, var(--color-surface) 60%, transparent);
+}
+
 /* Custom backdrops Tailwind can't express cleanly */
 @utility grid-bg {
   position: fixed;

@@ -48,7 +48,7 @@ export function StatPanel({
 }) {
   return (
     <div
-      className={`flex flex-col justify-between rounded-xl border border-accent/12 bg-surface/60 p-4 transition-opacity ${dim ? "opacity-45" : ""}`}
+      className={`flex flex-col justify-between panel p-4 transition-opacity ${dim ? "opacity-45" : ""}`}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-2 font-mono text-[11px] tracking-[0.12em] text-ink-muted">

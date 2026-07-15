@@ -14,7 +14,7 @@ function PostCard({ p, featured = false }: { p: Post; featured?: boolean }) {
   return (
     <Link
       to={`/${p.slug}`}
-      className={`group flex flex-col rounded-xl border border-accent/12 bg-surface/50 p-4 transition-colors hover:border-accent/30 hover:bg-surface/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg ${
+      className={`group flex flex-col panel p-4 transition-colors hover:border-accent/30 hover:bg-surface/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg ${
         featured ? "sm:col-span-2 sm:p-6 lg:col-span-3" : ""
       }`}
     >

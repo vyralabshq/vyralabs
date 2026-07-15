@@ -82,7 +82,7 @@ export function RecentVotes({
 
   return (
     <div
-      className={`flex h-full flex-col rounded-xl border border-accent/12 bg-surface/60 p-4 transition-opacity ${stale ? "opacity-45" : ""}`}
+      className={`flex h-full flex-col panel p-4 transition-opacity ${stale ? "opacity-45" : ""}`}
     >
       <p className="mb-1 flex items-center gap-1.5 text-[13px] text-ink-secondary">
         Recent votes

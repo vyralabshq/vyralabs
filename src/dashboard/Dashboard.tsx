@@ -295,7 +295,7 @@ export default function Dashboard() {
         )}
 
         {/* Identity + liveness band: full width, so the left column above stays uncluttered */}
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-accent/12 bg-surface/60 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 panel px-5 py-4">
           <StatusPills
             nodeHealthy={s.nodeHealthy}
             processActive={s.processActive}
@@ -365,7 +365,7 @@ export default function Dashboard() {
           <p className={sectionLabel}>THIS EPOCH</p>
           <Suspense
             fallback={
-              <div className="mb-3 h-56 rounded-xl border border-accent/12 bg-surface/60" />
+              <div className="mb-3 h-56 panel" />
             }
           >
             <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -373,7 +373,7 @@ export default function Dashboard() {
                 recentVotes={s.recentVotes}
                 stale={s.voteAccountStale}
               />
-              <div className="rounded-xl border border-accent/12 bg-surface/60 p-4">
+              <div className="panel p-4">
                 <p className="mb-1 flex items-center gap-1.5 text-[13px] text-ink-secondary">
                   Epoch credits
                   <InfoTip text="This epoch's vote credits split three ways: earned so far, missed (slots elapsed but not credited), and still earnable in the slots left." />
@@ -443,11 +443,11 @@ export default function Dashboard() {
           <p className={sectionLabel}>LAST HOUR</p>
           <Suspense
             fallback={
-              <div className="h-64 rounded-xl border border-accent/12 bg-surface/60" />
+              <div className="h-64 panel" />
             }
           >
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-              <div className="rounded-xl border border-accent/12 bg-surface/60 p-4 lg:col-span-2">
+              <div className="panel p-4 lg:col-span-2">
                 <div className="mb-1 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                   <p className="flex items-center gap-1.5 text-[13px] text-ink-secondary">
                     Finality lag (slots behind, shaded band is normal)
@@ -477,7 +477,7 @@ export default function Dashboard() {
                   yFormatter={(v) => `${Math.round(v)}`}
                 />
               </div>
-              <div className="rounded-xl border border-accent/12 bg-surface/60 p-4">
+              <div className="panel p-4">
                 <div className="mb-1 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                   <p className="flex items-center gap-1.5 text-[13px] text-ink-secondary">
                     Drop rate (%)

@@ -108,7 +108,7 @@ export function VoteCredits({
 }) {
   return (
     <div
-      className={`flex h-full flex-col gap-4 rounded-xl border border-accent/12 bg-surface/60 p-4 transition-opacity sm:p-5 ${stale ? "opacity-45" : ""}`}
+      className={`flex h-full flex-col gap-4 panel p-4 transition-opacity sm:p-5 ${stale ? "opacity-45" : ""}`}
     >
       <div className="flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 font-display text-[15px] font-bold text-ink">

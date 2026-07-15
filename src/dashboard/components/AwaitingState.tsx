@@ -38,7 +38,7 @@ export function AwaitingState() {
           </h1>
         </div>
 
-        <div className="flex flex-col items-start gap-6 rounded-xl border border-accent/15 bg-surface/60 px-8 py-14">
+        <div className="flex flex-col items-start gap-6 panel px-8 py-14">
           <span className="inline-flex items-center gap-2.5">
             <span className="h-2.5 w-2.5 rounded-full bg-accent animate-pulse-dot" aria-hidden="true" />
             <span className="font-mono text-sm tracking-[0.12em] text-ink-secondary">
