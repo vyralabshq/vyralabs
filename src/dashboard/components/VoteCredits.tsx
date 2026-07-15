@@ -164,33 +164,38 @@ export function VoteCredits({
         ) : (
           // Column chart: oldest → newest, left → right, capped to the newest 8 epochs
           // (~2 weeks) — enough to read the trend, few enough that each bar carries
-          // signal. Fixed-width columns centered so a thin history reads as an
-          // intentional cluster, not stretched to the panel edges. pt gives the tallest
-          // bar's label headroom; bars share a bottom baseline.
-          <div className="relative flex items-end justify-center gap-4 overflow-x-auto pt-6">
-            {/* Y gridlines behind the bars: 25/50/75/100% reference so a bar's height
-                is readable without leaning on its label. Aligned to the h-28 bar track
-                (top-6 clears the same label headroom the columns' pt-6 adds). */}
-            <div className="pointer-events-none absolute inset-x-0 top-6 flex h-28 flex-col justify-between">
-              {[100, 75, 50, 25].map((v) => (
-                <div key={v} className="relative border-t border-accent/10">
-                  <span className="absolute -top-1.5 left-0 font-mono text-[8px] text-ink-muted">
-                    {v}
-                  </span>
-                </div>
-              ))}
+          // signal. The scroll container is the outer element and the track sizes to its
+          // content (w-max) with auto side margins: that centers a thin history like an
+          // intentional cluster, but still scrolls to the oldest bar on narrow screens —
+          // `justify-center` here would make the left overflow unreachable. pt gives the
+          // tallest bar's label headroom; bars share a bottom baseline.
+          <div className="overflow-x-auto pt-6">
+            <div className="relative mx-auto flex w-max items-end gap-4 pl-5">
+              {/* Y gridlines behind the bars: 25/50/75/100% reference so a bar's height
+                  is readable without leaning on its label. Inside the track so they span
+                  and scroll with the bars rather than decoupling from them; the track's
+                  left padding is the axis gutter the labels sit in. */}
+              <div className="pointer-events-none absolute inset-x-0 top-0 flex h-28 flex-col justify-between">
+                {[100, 75, 50, 25].map((v) => (
+                  <div key={v} className="relative border-t border-accent/10">
+                    <span className="absolute -top-1.5 left-0 font-mono text-[8px] text-ink-muted">
+                      {v}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {[...epochCredits]
+                .sort((a, b) => (a.epoch ?? 0) - (b.epoch ?? 0))
+                .slice(-8)
+                .map((c, i) => (
+                  <CreditColumn
+                    key={c.epoch ?? i}
+                    c={c}
+                    currentEpoch={currentEpoch}
+                    progressPct={progressPct}
+                  />
+                ))}
             </div>
-            {[...epochCredits]
-              .sort((a, b) => (a.epoch ?? 0) - (b.epoch ?? 0))
-              .slice(-8)
-              .map((c, i) => (
-                <CreditColumn
-                  key={c.epoch ?? i}
-                  c={c}
-                  currentEpoch={currentEpoch}
-                  progressPct={progressPct}
-                />
-              ))}
           </div>
         )}
       </div>

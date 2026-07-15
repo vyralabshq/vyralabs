@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 
 export function StatStrip({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-8 gap-y-3 rounded-xl border border-accent/12 bg-surface/60 p-4 font-mono text-sm sm:p-5">
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 rounded-xl border border-accent/12 bg-surface/60 p-4 font-mono text-[13px] sm:gap-x-8 sm:gap-y-3 sm:p-5 sm:text-sm">
       {children}
     </div>
   );

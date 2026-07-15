@@ -448,7 +448,7 @@ export default function Dashboard() {
           >
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
               <div className="rounded-xl border border-accent/12 bg-surface/60 p-4 lg:col-span-2">
-                <div className="mb-1 flex items-start justify-between gap-3">
+                <div className="mb-1 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                   <p className="flex items-center gap-1.5 text-[13px] text-ink-secondary">
                     Finality lag (slots behind, shaded band is normal)
                     <InfoTip text="Slots between the processed tip and the finalized tip, over the last hour. A steady line inside the shaded band means the node is tracking the cluster." />
@@ -478,7 +478,7 @@ export default function Dashboard() {
                 />
               </div>
               <div className="rounded-xl border border-accent/12 bg-surface/60 p-4">
-                <div className="mb-1 flex items-start justify-between gap-3">
+                <div className="mb-1 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                   <p className="flex items-center gap-1.5 text-[13px] text-ink-secondary">
                     Drop rate (%)
                     <InfoTip text="Share of this node's leader blocks that were skipped rather than produced, over the last hour. At zero stake there are no leader slots, so it stays flat." />
