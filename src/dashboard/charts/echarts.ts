@@ -5,22 +5,19 @@
 // without importing this.
 
 import * as echarts from "echarts/core";
-import { LineChart, GaugeChart, PieChart } from "echarts/charts";
+import { LineChart, PieChart } from "echarts/charts";
 import {
   GridComponent,
   TooltipComponent,
-  MarkLineComponent,
   MarkAreaComponent,
 } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 
 echarts.use([
   LineChart,
-  GaugeChart,
   PieChart,
   GridComponent,
   TooltipComponent,
-  MarkLineComponent,
   MarkAreaComponent,
   CanvasRenderer,
 ]);
