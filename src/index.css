@@ -57,6 +57,56 @@
   background-color: color-mix(in oklab, var(--color-surface) 60%, transparent);
 }
 
+/* Container guide lines: 1px rules down both edges of the content column, plus small
+   squares at its corners — the page showing its own measurements, like a technical drawing.
+   Applied to the element that already IS the container, so the rules sit at left/right 0 and
+   can never drift from the real column edge (no viewport math to keep in sync with the
+   max-width). Warm-tinted to the palette; the usual neutral grey reads as a rendering bug on
+   this background. Behind content but above the page backdrops via isolation, never
+   interactive. Hidden below sm: on a phone the column is the viewport and the lines would
+   just be two stripes hugging the screen edge. */
+@utility container-lines {
+  position: relative;
+  isolation: isolate;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: -1;
+    width: 1px;
+    background: color-mix(in oklab, var(--color-accent) 16%, transparent);
+    pointer-events: none;
+    /* Fade both ends. Without this the rules butt-end under the header and again above the
+       footer, which reads as a div that stopped rather than a drawn guide. They should
+       emerge from the page and dissolve back into it. */
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      black 140px,
+      black calc(100% - 140px),
+      transparent 100%
+    );
+  }
+
+  &::before {
+    left: 0;
+  }
+
+  &::after {
+    right: 0;
+  }
+
+  @media (width < 40rem) {
+    &::before,
+    &::after {
+      content: none;
+    }
+  }
+}
+
 /* Custom backdrops Tailwind can't express cleanly */
 @utility grid-bg {
   position: fixed;
