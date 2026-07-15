@@ -117,9 +117,10 @@ export const milestones: {
 
 export const journal = {
   eyebrow: "FIELD NOTES",
+  heading: "What actually breaks, and how it got fixed.",
   intro:
     "Operational field notes from running the node in the open. Real problems, the real logs, the root cause, and the exact fix (not marketing).",
-  current: "Read the field notes",
+  current: "Read all field notes",
   href: "/logs",
 };
 
