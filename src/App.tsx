@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { LazyMotion, m, useReducedMotion } from "motion/react";
+
+// Motion ships every feature through the `motion` component. We use exactly two (animate,
+// whileInView), so we take the `m` component — same API, none of the baggage — and load the
+// DOM feature set as its own async chunk. It is fetched after hydration rather than sitting
+// in the entry bundle a visitor waits on.
+const loadMotionFeatures = () =>
+  import("./motionFeatures").then((mod) => mod.default);
 import { postsMeta } from "./journal/postsMeta";
 import { fmtDate } from "./journal/date";
 import {
@@ -88,7 +95,7 @@ function App() {
   }, []);
 
   return (
-    <>
+    <LazyMotion features={loadMotionFeatures}>
       {/* Keyboard users land here first: off-screen until focused, then jumps past the nav. */}
       <a
         href="#top"
@@ -117,7 +124,7 @@ function App() {
               than tick through an easing. duration/bounce per Apple-style config; bounce is
               kept low because this is a crisp tool, not a toy. `initial={false}` so it does
               not animate in on first paint — it is already in its resting state. */}
-          <motion.div
+          <m.div
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-6 inset-y-0 origin-center rounded-xl border border-accent/15 bg-elevated/80 shadow-lg shadow-black/40 backdrop-blur-md"
             initial={false}
@@ -249,7 +256,7 @@ function App() {
               const tone = STATUS_TONE[card.tag] ?? STATUS_TONE.SOON;
               const feature = i === 0;
               return (
-                <motion.div
+                <m.div
                   key={card.title}
                   /* Cascade in as the row enters view instead of all three mounting at once.
                      60ms apart (the 30-80ms band), once only — a re-run on every scroll-by
@@ -322,7 +329,7 @@ function App() {
                       </a>
                     )}
                   </div>
-                </motion.div>
+                </m.div>
               );
             })}
           </div>
@@ -563,7 +570,7 @@ function App() {
           </p>
         </div>
       </footer>
-    </>
+    </LazyMotion>
   );
 }
 
