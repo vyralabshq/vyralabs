@@ -22,12 +22,6 @@ export function fmtSol(n: number | null, digits = 4): string | null {
   return n === null ? null : `◎${fmtDec(n, digits)}`;
 }
 
-export function fmtGb(n: number | null): string | null {
-  if (n === null) return null;
-  const digits = n < 100 ? 1 : 0;
-  return `${fmtDec(n, digits)} GB`;
-}
-
 /** Compact whole numbers for big counters: 389421772913 -> "389.4B". */
 export function fmtCompact(n: number | null): string | null {
   if (n === null) return null;
