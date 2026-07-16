@@ -37,11 +37,3 @@ export const status = {
   balance: (v: number | null): Status | null =>
     v === null ? null : lo(v, 1, 0.1),
 };
-
-/** Short human qualifier for a status, e.g. next to drop rate. */
-export function statusWord(s: Status | null): string | null {
-  if (s === "ok") return "healthy";
-  if (s === "warn") return "elevated";
-  if (s === "down") return "critical";
-  return null;
-}

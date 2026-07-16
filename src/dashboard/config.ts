@@ -31,6 +31,3 @@ export const OFFLINE_AFTER_SECONDS = 90;
 export const POLL_LATEST_MS = 10_000;
 export const POLL_HISTORY_1H_MS = 30_000;
 export const POLL_HISTORY_24H_MS = 5 * 60_000;
-
-/** Approximate testnet slot time, used only for the epoch ETA estimate. */
-export const SLOT_TIME_SECONDS = 0.4;
