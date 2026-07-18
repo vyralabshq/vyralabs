@@ -24,6 +24,8 @@ use chrono::Utc;
 use collector::config::{
     ACCOUNTS_PATH, CLUSTER, IDENTITY_PUBKEY, IS_JITO_CLIENT, LEDGER_PATH, SERVICE_NAME, VOTE_PUBKEY,
 };
+use collector::blockproduction::parse_leader_schedule;
+use collector::rpc::parse_epoch_info;
 use collector::state::{load_state, save_state};
 use collector::{build_snapshot, fetch, Inputs, SnapshotResult};
 
@@ -89,6 +91,9 @@ fn run_once(args: &[String]) -> ExitCode {
         os_stats: Some(fetch::gather_os_stats(LEDGER_PATH, ACCOUNTS_PATH, SERVICE_NAME)),
         vote_account_json: read_file("--vote-account"),
         vote_accounts_json: read_file("--get-vote-accounts"),
+        leader_slots: read_file("--leader-schedule")
+            .map(|t| parse_leader_schedule(&t, IDENTITY_PUBKEY)),
+        block_production_json: read_file("--block-production"),
         identity_pubkey: Some(IDENTITY_PUBKEY.to_string()),
         vote_pubkey: Some(VOTE_PUBKEY.to_string()),
         cluster: CLUSTER.to_string(),
@@ -137,6 +142,10 @@ fn run_daemon() -> ExitCode {
     }
     let mut state = load_state(&state_path);
     let mut last_vote_fetch: Option<Instant> = None;
+    // Our leader slots for the current epoch, parsed once and reused every cycle. The raw
+    // `solana leader-schedule` output is the whole cluster (~26 MB), so we filter to our
+    // identity and keep only the small Vec, refetching when the epoch rolls over.
+    let mut leader_schedule: Option<(i64, Vec<i64>)> = None;
     eprintln!(
         "collector daemon up: cycle {}s, out {}, rpc {rpc_url}",
         cycle.as_secs(),
@@ -147,11 +156,30 @@ fn run_daemon() -> ExitCode {
         let start = Instant::now();
         let do_vote = last_vote_fetch.is_none_or(|t| t.elapsed() >= vote_gate);
 
+        // Epoch info drives both the snapshot and the leader-schedule cache, so fetch it once
+        // and reuse it. On an epoch rollover (or first run) refetch the schedule and reparse
+        // to our slots; otherwise keep the cached Vec.
+        let rpc_epoch_info = fetch::curl_rpc(&rpc_url, "getEpochInfo", "[]");
+        if let Some(ep) = rpc_epoch_info
+            .as_deref()
+            .and_then(parse_epoch_info)
+            .and_then(|e| e.epoch)
+        {
+            if leader_schedule.as_ref().is_none_or(|(cached, _)| *cached != ep) {
+                if let Some(text) = fetch::fetch_leader_schedule(ep) {
+                    let slots = parse_leader_schedule(&text, IDENTITY_PUBKEY);
+                    if !slots.is_empty() {
+                        leader_schedule = Some((ep, slots));
+                    }
+                }
+            }
+        }
+
         let inputs = Inputs {
             log_lines: fetch::read_log_lines(log_file.as_deref(), SERVICE_NAME, 500),
             monitor_output: fetch::fetch_monitor(LEDGER_PATH, "agave-validator"),
             rpc_health: fetch::curl_rpc(&rpc_url, "getHealth", "[]"),
-            rpc_epoch_info: fetch::curl_rpc(&rpc_url, "getEpochInfo", "[]"),
+            rpc_epoch_info,
             rpc_version: fetch::curl_rpc(&rpc_url, "getVersion", "[]"),
             rpc_balance: fetch::curl_rpc(&rpc_url, "getBalance", &format!("[\"{IDENTITY_PUBKEY}\"]")),
             os_stats: Some(fetch::gather_os_stats(LEDGER_PATH, ACCOUNTS_PATH, SERVICE_NAME)),
@@ -165,6 +193,13 @@ fn run_daemon() -> ExitCode {
                     )
                 })
                 .flatten(),
+            leader_slots: leader_schedule.as_ref().map(|(_, s)| s.clone()),
+            // Identity-filtered getBlockProduction stays small, so fetch it every cycle.
+            block_production_json: fetch::curl_rpc(
+                &rpc_url,
+                "getBlockProduction",
+                &format!("[{{\"identity\":\"{IDENTITY_PUBKEY}\"}}]"),
+            ),
             jito_client: Some(IS_JITO_CLIENT),
             identity_pubkey: Some(IDENTITY_PUBKEY.to_string()),
             vote_pubkey: Some(VOTE_PUBKEY.to_string()),

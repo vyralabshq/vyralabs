@@ -81,6 +81,35 @@ pub struct BlockProduction {
     pub dropped: Option<i64>,
 }
 
+/// Leader schedule + block production for the "is it producing" view. `leader_slots` is the
+/// whole-epoch assignment (absolute slots, sorted); the frontend groups the consecutive runs
+/// and derives produced/skipped/upcoming per slot against the current tip. Counts come from
+/// getBlockProduction. Empty (all None / empty vec) until an epoch's schedule is fetched.
+#[derive(Debug, Clone, Serialize)]
+pub struct LeaderProduction {
+    pub epoch: Option<i64>,
+    pub leader_slots: Vec<i64>,
+    pub produced: Option<i64>,
+    pub skipped: Option<i64>,
+    pub skip_rate_pct: Option<f64>,
+    pub cluster_skip_rate_pct: Option<f64>,
+    pub next_leader_slot: Option<i64>,
+}
+
+impl LeaderProduction {
+    pub fn empty() -> Self {
+        LeaderProduction {
+            epoch: None,
+            leader_slots: Vec::new(),
+            produced: None,
+            skipped: None,
+            skip_rate_pct: None,
+            cluster_skip_rate_pct: None,
+            next_leader_slot: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct System {
     pub ledger_disk: Disk,
@@ -136,6 +165,7 @@ pub struct Latest {
     pub epoch: Epoch,
     pub vote: Vote,
     pub block_production: BlockProduction,
+    pub leader_production: LeaderProduction,
     pub fork_weight: Option<f64>,
     pub system: System,
     pub vote_account: VoteAccount,
@@ -182,6 +212,7 @@ pub fn empty_latest(
             produced: None,
             dropped: None,
         },
+        leader_production: LeaderProduction::empty(),
         fork_weight: None,
         system: System {
             ledger_disk: Disk::empty(),

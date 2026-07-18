@@ -20,8 +20,11 @@ use crate::monitor::parse_monitor;
 use crate::osstats::{parse_os_stats, OsStatsInput};
 use crate::redact::Redactor;
 use crate::rpc::{parse_activated_stake, parse_balance, parse_epoch_info, parse_health, parse_version};
+use crate::blockproduction::{next_leader_slot, parse_block_production, skip_rate_pct};
+use crate::config;
 use crate::schema::{
-    empty_history, empty_latest, History, HistoryPoint, Latest, Version, VoteAccount,
+    empty_history, empty_latest, History, HistoryPoint, Latest, LeaderProduction, Version,
+    VoteAccount,
 };
 use crate::voteaccount::parse_vote_account;
 use crate::window::roll;
@@ -74,6 +77,12 @@ pub struct Inputs {
     pub vote_account_json: Option<String>,
     /// Raw localhost `getVoteAccounts` — only for activated stake, which the CLI omits (#11).
     pub vote_accounts_json: Option<String>,
+    /// Our leader slots this epoch (absolute, sorted), pre-parsed from `solana
+    /// leader-schedule` and cached per epoch by the caller — the raw text is the whole
+    /// cluster's schedule (~26 MB), so it is filtered to our identity before it reaches here.
+    pub leader_slots: Option<Vec<i64>>,
+    /// Raw localhost `getBlockProduction` for our identity (produced/skipped counts).
+    pub block_production_json: Option<String>,
     pub identity_pubkey: Option<String>,
     pub vote_pubkey: Option<String>,
     pub cluster: String,
@@ -286,6 +295,35 @@ pub fn build_snapshot(
                 None => errors.push("vote-account: not available".to_string()),
             }
         }
+    }
+
+    // Leader production (block-production section). The schedule is fixed per epoch and
+    // carried in already parsed; getBlockProduction gives the produced/skipped split. Empty
+    // (no leader_slots) until the epoch's schedule has been fetched — the frontend then shows
+    // its awaiting state rather than fake zeros.
+    {
+        let identity = inputs
+            .identity_pubkey
+            .as_deref()
+            .unwrap_or(config::IDENTITY_PUBKEY);
+        let current = latest.epoch.absolute_slot.or(latest.slots.processed);
+        let schedule = inputs.leader_slots.clone().unwrap_or_default();
+        let counts = inputs
+            .block_production_json
+            .as_deref()
+            .and_then(|j| parse_block_production(j, identity))
+            .unwrap_or_default();
+        latest.leader_production = LeaderProduction {
+            epoch: latest.epoch.epoch,
+            next_leader_slot: current.and_then(|c| next_leader_slot(&schedule, c)),
+            leader_slots: schedule,
+            produced: counts.produced,
+            skipped: counts.skipped,
+            skip_rate_pct: skip_rate_pct(&counts),
+            // Cluster comparison: getBlockProduction with no identity filter gives cluster
+            // totals. Wired once verified on the box; None keeps the frontend honest until then.
+            cluster_skip_rate_pct: None,
+        };
     }
 
     // The current point carries the datapoint -> derived values for this cycle.

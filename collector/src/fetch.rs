@@ -89,6 +89,13 @@ pub fn fetch_vote_account(vote_pubkey: &str) -> Option<String> {
     run("solana", &["vote-account", vote_pubkey, "--output", "json"])
 }
 
+/// `solana leader-schedule --epoch <N>` — the whole-cluster schedule as text (`<slot>
+/// <identity>` per line). Large; the caller parses to our slots and caches per epoch. `-ut`
+/// selects testnet, matching the box commands.
+pub fn fetch_leader_schedule(epoch: i64) -> Option<String> {
+    run("solana", &["-ut", "leader-schedule", "--epoch", &epoch.to_string()])
+}
+
 /// Gather OS stats by running local commands / reading /proc. Each field independent;
 /// anything unavailable (e.g. on non-Linux dev) is simply None.
 pub fn gather_os_stats(ledger_path: &str, accounts_path: &str, service: &str) -> OsStatsInput {
