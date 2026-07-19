@@ -28,3 +28,8 @@ collector/target
 
 # Local build spec (not public)
 plan.md
+
+# Vendored agent/Claude skills — local tooling, not for the public repo
+.agents/
+.claude/skills/
+skills-lock.json
