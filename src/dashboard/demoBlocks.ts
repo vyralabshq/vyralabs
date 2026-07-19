@@ -66,11 +66,17 @@ export const NEXT_LEADER_SLOT =
       ) ?? null)
     : null;
 
-// The most recent completed leader slots, newest last, for the per-slot strip.
-export const RECENT_LEADER_SLOTS: { slot: number; produced: boolean }[] =
-  LEADER_GROUPS.flatMap((g) =>
-    g.slots
-      .map((state, k) => ({ slot: g.start + k, state }))
-      .filter((x) => x.state !== "upcoming")
-      .map((x) => ({ slot: x.slot, produced: x.state === "produced" })),
-  ).slice(-40);
+// Skip rate per epoch, for the history bars. Real history starts at 992 (our first epoch
+// with leader slots — stake activated at 991, so 992 is the first with an assignment); the
+// earlier demo epochs illustrate how the view fills in over time. The current epoch reads
+// its live rate off BLOCK_STATS.
+export interface EpochSkip {
+  epoch: number;
+  skipRatePct: number;
+  inProgress: boolean;
+}
+export const EPOCH_SKIP_HISTORY: EpochSkip[] = [
+  { epoch: 990, skipRatePct: 3.4, inProgress: false },
+  { epoch: 991, skipRatePct: 1.1, inProgress: false },
+  { epoch: EPOCH, skipRatePct: BLOCK_STATS.skipRatePct, inProgress: true },
+];

@@ -56,14 +56,24 @@ export function LeaderTimeline({
       {/* Track: ticks sit on a baseline, the now-marker sweeps left to right as the epoch runs. */}
       <div className="relative h-12">
         <div className="absolute inset-x-0 bottom-0 h-px bg-accent/12" />
-        {groups.map((g, i) => (
-          <div
-            key={i}
-            className={`absolute bottom-0 w-[3px] -translate-x-1/2 rounded-t ${TICK[groupState(g)]}`}
-            style={{ left: `${pct(g.start)}%`, height: "100%" }}
-            title={`slot ${g.start.toLocaleString("en-US")} · ${groupState(g)}`}
-          />
-        ))}
+        {groups.map((g, i) => {
+          const state = groupState(g);
+          const produced = g.slots.filter((s) => s === "produced").length;
+          const skipped = g.slots.filter((s) => s === "skipped").length;
+          const end = g.start + (g.slots.length - 1);
+          const outcome =
+            state === "upcoming"
+              ? "upcoming"
+              : `${produced} produced${skipped ? `, ${skipped} skipped` : ""}`;
+          return (
+            <div
+              key={i}
+              className={`absolute bottom-0 w-[3px] -translate-x-1/2 rounded-t ${TICK[state]}`}
+              style={{ left: `${pct(g.start)}%`, height: "100%" }}
+              title={`slots ${g.start.toLocaleString("en-US")}–${end.toLocaleString("en-US")} · ${outcome}`}
+            />
+          );
+        })}
         {/* now marker */}
         <div
           className="absolute bottom-0 top-0 w-px -translate-x-1/2 bg-accent"

@@ -26,16 +26,16 @@ import { SystemStrip } from "./components/SystemStrip";
 import { NetworkStrip } from "./components/NetworkStrip";
 import { StatStrip } from "./components/StatStrip";
 import { LeaderTimeline } from "./components/LeaderTimeline";
-import { LeaderSlots } from "./components/LeaderSlots";
+import { BlocksPerEpoch } from "./components/BlocksPerEpoch";
 import {
   LEADER_GROUPS,
   BLOCK_STATS,
   NEXT_LEADER_SLOT,
-  RECENT_LEADER_SLOTS,
   CURRENT_SLOT,
   EPOCH_START,
   EPOCH_END,
   CLUSTER_SKIP_PCT,
+  EPOCH_SKIP_HISTORY,
 } from "./demoBlocks";
 import { NodeCaughtUpStrip } from "./components/NodeCaughtUpStrip";
 import { VoteCredits } from "./components/VoteCredits";
@@ -205,11 +205,25 @@ export default function Dashboard() {
   const finalityLagChart = ema(finalityLagSeries, 0.35);
 
   // DEMO block-production derivations (see demoBlocks.ts). Slot count -> ETA at 400ms/slot,
-  // and the three-way donut split. Replaced by collector data when block production lands.
+  // plus the wall-clock arrival (relative time answers "how long", clock answers "can I step
+  // away"), and the three-way donut split. Replaced by collector data when block prod lands.
   const nextLeaderIn =
     NEXT_LEADER_SLOT === null ? null : NEXT_LEADER_SLOT - CURRENT_SLOT;
   const nextLeaderMin =
     nextLeaderIn === null ? null : Math.round((nextLeaderIn * 0.4) / 60);
+  const nextLeaderClock =
+    nextLeaderIn === null
+      ? null
+      : new Date(now.getTime() + nextLeaderIn * 400).toLocaleTimeString("en-GB", {
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "UTC",
+        });
+  // Guard the epoch-start state: 0 leader slots so far means the donut % must not divide by
+  // zero. leaderSlots is the schedule total (136 once loaded), so this only bites pre-fetch.
+  const blockTotal = BLOCK_STATS.leaderSlots || 0;
+  const blockPct = (v: number) =>
+    blockTotal === 0 ? 0 : Math.round((v / blockTotal) * 100);
   const blockDonut = [
     { name: "produced", value: BLOCK_STATS.produced, color: CHART.ok },
     { name: "skipped", value: BLOCK_STATS.skipped, color: CHART.down },
@@ -406,7 +420,9 @@ export default function Dashboard() {
                   {fmtInt(NEXT_LEADER_SLOT) ?? "—"}
                 </span>
                 <span className="text-xs text-ink-secondary">
-                  {nextLeaderIn === null ? "—" : `in ${fmtInt(nextLeaderIn)} slots · ~${nextLeaderMin}m`}
+                  {nextLeaderIn === null
+                    ? "—"
+                    : `in ${fmtInt(nextLeaderIn)} slots · ~${nextLeaderMin}m · ${nextLeaderClock} UTC`}
                 </span>
                 <InfoTip text="The next slot your validator is scheduled to lead. The single most-checked number for an operator with stake: it tells you when the node next has to produce blocks." />
               </span>
@@ -443,7 +459,6 @@ export default function Dashboard() {
             fallback={<div className="h-56 panel" />}
           >
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <LeaderSlots slots={RECENT_LEADER_SLOTS} />
               <div className="panel p-4">
                 <p className="mb-1 flex items-center gap-1.5 text-[13px] text-ink-secondary">
                   Block production
@@ -468,12 +483,13 @@ export default function Dashboard() {
                         {seg.name}
                       </span>
                       <span className="tabular-nums text-ink-tertiary">
-                        {Math.round((seg.value / BLOCK_STATS.leaderSlots) * 100)}%
+                        {blockPct(seg.value)}%
                       </span>
                     </div>
                   ))}
                 </div>
               </div>
+              <BlocksPerEpoch history={EPOCH_SKIP_HISTORY} />
             </div>
           </Suspense>
         </section>
