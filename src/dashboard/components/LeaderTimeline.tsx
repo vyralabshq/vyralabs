@@ -1,4 +1,4 @@
-import type { LeaderGroup } from "../demoBlocks";
+import type { LeaderGroup } from "../blockGroups";
 import { InfoTip } from "./InfoTip";
 
 // The epoch's 34 leader groups as ticks positioned by where they fall in the epoch, so the

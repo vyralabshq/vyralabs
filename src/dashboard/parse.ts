@@ -20,7 +20,8 @@ import { STALE_AFTER_SECONDS, OFFLINE_AFTER_SECONDS } from "./config";
 
 /** Three-state liveness from snapshot age. Missing timestamp reads as OFFLINE (#7). */
 function livenessOf(ageSeconds: number | null): Liveness {
-  if (ageSeconds === null || ageSeconds > OFFLINE_AFTER_SECONDS) return "OFFLINE";
+  if (ageSeconds === null || ageSeconds > OFFLINE_AFTER_SECONDS)
+    return "OFFLINE";
   if (ageSeconds > STALE_AFTER_SECONDS) return "STALE";
   return "LIVE";
 }
@@ -46,7 +47,9 @@ function bool(v: unknown): boolean | null {
 }
 
 function strArray(v: unknown): string[] {
-  return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  return Array.isArray(v)
+    ? v.filter((x): x is string => typeof x === "string")
+    : [];
 }
 
 /** Parse an ISO-8601 timestamp to a Date, or null if absent/unparseable. */
@@ -107,6 +110,7 @@ function emptyState(): DashboardState {
     blocksDropped: null,
     dropRatePct: null,
     forkWeightPct: null,
+    leaderProduction: null,
     ledgerDisk: { pct: null, usedGb: null, totalGb: null },
     accountsDisk: { pct: null, usedGb: null, totalGb: null },
     memory: { pct: null, usedGb: null, totalGb: null },
@@ -154,7 +158,9 @@ export function parseSnapshot(raw: unknown, now: Date): DashboardState {
   const generatedAt = parseDate(root.generated_at);
   s.generatedAt = generatedAt;
   s.ageSeconds =
-    generatedAt === null ? null : (now.getTime() - generatedAt.getTime()) / 1000;
+    generatedAt === null
+      ? null
+      : (now.getTime() - generatedAt.getTime()) / 1000;
   // Missing timestamp counts as stale. A future timestamp (negative age) does not.
   s.stale = s.ageSeconds === null || s.ageSeconds > STALE_AFTER_SECONDS;
   s.liveness = livenessOf(s.ageSeconds);
@@ -215,6 +221,36 @@ export function parseSnapshot(raw: unknown, now: Date): DashboardState {
       ? (s.blocksDropped / (s.blocksProduced + s.blocksDropped)) * 100
       : null;
 
+  const lp = asObject(root.leader_production);
+  if (lp) {
+    const slots = Array.isArray(lp.leader_slots)
+      ? lp.leader_slots.filter((x): x is number => typeof x === "number")
+      : [];
+    const history = Array.isArray(lp.skip_history)
+      ? lp.skip_history.flatMap((h) => {
+          const o = asObject(h);
+          const epoch = o ? num(o.epoch) : null;
+          const rate = o ? num(o.skip_rate_pct) : null;
+          return epoch !== null && rate !== null
+            ? [{ epoch, skipRatePct: rate }]
+            : [];
+        })
+      : [];
+    s.leaderProduction = {
+      epoch: num(lp.epoch),
+      epochStartSlot: num(lp.epoch_start_slot),
+      epochEndSlot: num(lp.epoch_end_slot),
+      currentSlot: num(lp.current_slot),
+      leaderSlots: slots,
+      produced: num(lp.produced),
+      skipped: num(lp.skipped),
+      skipRatePct: num(lp.skip_rate_pct),
+      clusterSkipRatePct: num(lp.cluster_skip_rate_pct),
+      nextLeaderSlot: num(lp.next_leader_slot),
+      skipHistory: history,
+    };
+  }
+
   const forkWeight = num(root.fork_weight);
   s.forkWeightPct = forkWeight === null ? null : forkWeight * 100;
 
@@ -224,7 +260,9 @@ export function parseSnapshot(raw: unknown, now: Date): DashboardState {
     s.accountsDisk = disk(system.accounts_disk);
     s.memory = disk(system.memory);
     s.loadAvg = Array.isArray(system.load_avg)
-      ? system.load_avg.map((x) => num(x)).filter((x): x is number => x !== null)
+      ? system.load_avg
+          .map((x) => num(x))
+          .filter((x): x is number => x !== null)
       : null;
     if (s.loadAvg && s.loadAvg.length !== 3) s.loadAvg = null;
     s.cpuCores = num(system.cpu_cores);
@@ -254,7 +292,9 @@ export function parseSnapshot(raw: unknown, now: Date): DashboardState {
           .map((r): RecentVote | null => {
             const o = asObject(r);
             const slot = o ? num(o.slot) : null;
-            return slot === null ? null : { slot, latency: o ? num(o.latency) : null };
+            return slot === null
+              ? null
+              : { slot, latency: o ? num(o.latency) : null };
           })
           .filter((r): r is RecentVote => r !== null)
       : [];

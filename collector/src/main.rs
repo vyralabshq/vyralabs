@@ -91,6 +91,7 @@ fn run_once(args: &[String]) -> ExitCode {
         os_stats: Some(fetch::gather_os_stats(LEDGER_PATH, ACCOUNTS_PATH, SERVICE_NAME)),
         vote_account_json: read_file("--vote-account"),
         vote_accounts_json: read_file("--get-vote-accounts"),
+        leader_epoch: None,
         leader_slots: read_file("--leader-schedule")
             .map(|t| parse_leader_schedule(&t, IDENTITY_PUBKEY)),
         block_production_json: read_file("--block-production"),
@@ -142,10 +143,12 @@ fn run_daemon() -> ExitCode {
     }
     let mut state = load_state(&state_path);
     let mut last_vote_fetch: Option<Instant> = None;
-    // Our leader slots for the current epoch, parsed once and reused every cycle. The raw
-    // `solana leader-schedule` output is the whole cluster (~26 MB), so we filter to our
-    // identity and keep only the small Vec, refetching when the epoch rolls over.
-    let mut leader_schedule: Option<(i64, Vec<i64>)> = None;
+    // Our leader schedule, parsed once and reused every cycle (the raw `solana
+    // leader-schedule` output is the whole cluster ~26 MB, so we keep only our small Vec).
+    // Keyed on the current chain epoch; the stored pair is (display_epoch, our_slots), where
+    // display_epoch is the current epoch when it holds any of our slots, else the next epoch
+    // — so the epoch before our first assignment still shows a useful "next leader".
+    let mut leader_schedule: Option<(i64, i64, Vec<i64>)> = None;
     eprintln!(
         "collector daemon up: cycle {}s, out {}, rpc {rpc_url}",
         cycle.as_secs(),
@@ -165,11 +168,22 @@ fn run_daemon() -> ExitCode {
             .and_then(parse_epoch_info)
             .and_then(|e| e.epoch)
         {
-            if leader_schedule.as_ref().is_none_or(|(cached, _)| *cached != ep) {
-                if let Some(text) = fetch::fetch_leader_schedule(ep) {
-                    let slots = parse_leader_schedule(&text, IDENTITY_PUBKEY);
-                    if !slots.is_empty() {
-                        leader_schedule = Some((ep, slots));
+            // Re-resolve the schedule when the chain epoch changes. Prefer this epoch; if it
+            // has none of our slots, look one epoch ahead so the countdown to our first ones
+            // shows up early.
+            if leader_schedule.as_ref().is_none_or(|(cached, _, _)| *cached != ep) {
+                let fetch_ours = |e: i64| {
+                    fetch::fetch_leader_schedule(e)
+                        .map(|t| parse_leader_schedule(&t, IDENTITY_PUBKEY))
+                        .unwrap_or_default()
+                };
+                let cur = fetch_ours(ep);
+                if !cur.is_empty() {
+                    leader_schedule = Some((ep, ep, cur));
+                } else {
+                    let next = fetch_ours(ep + 1);
+                    if !next.is_empty() {
+                        leader_schedule = Some((ep, ep + 1, next));
                     }
                 }
             }
@@ -193,7 +207,8 @@ fn run_daemon() -> ExitCode {
                     )
                 })
                 .flatten(),
-            leader_slots: leader_schedule.as_ref().map(|(_, s)| s.clone()),
+            leader_epoch: leader_schedule.as_ref().map(|(_, disp, _)| *disp),
+            leader_slots: leader_schedule.as_ref().map(|(_, _, s)| s.clone()),
             // Identity-filtered getBlockProduction stays small, so fetch it every cycle.
             block_production_json: fetch::curl_rpc(
                 &rpc_url,

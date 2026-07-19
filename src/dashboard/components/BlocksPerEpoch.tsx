@@ -1,4 +1,4 @@
-import type { EpochSkip } from "../demoBlocks";
+import type { EpochSkip } from "../types";
 import { InfoTip } from "./InfoTip";
 
 // Skip rate per epoch, the block-side counterpart to credits-per-epoch. Low is good, so bars
@@ -16,7 +16,13 @@ function tier(pct: number): string {
   return "bg-ok";
 }
 
-export function BlocksPerEpoch({ history }: { history: EpochSkip[] }) {
+export function BlocksPerEpoch({
+  history,
+  currentEpoch,
+}: {
+  history: EpochSkip[];
+  currentEpoch: number | null;
+}) {
   const shown = [...history].sort((a, b) => a.epoch - b.epoch).slice(-8);
 
   return (
@@ -58,7 +64,7 @@ export function BlocksPerEpoch({ history }: { history: EpochSkip[] }) {
                     {e.skipRatePct.toFixed(1)}
                   </span>
                   <div
-                    className={`w-6 rounded-t ${tier(e.skipRatePct)} ${e.inProgress ? "opacity-90" : ""}`}
+                    className={`w-6 rounded-t ${tier(e.skipRatePct)} ${e.epoch === currentEpoch ? "opacity-90" : ""}`}
                     style={{ height: `${h}%`, minHeight: 3 }}
                   />
                 </div>
@@ -71,7 +77,7 @@ export function BlocksPerEpoch({ history }: { history: EpochSkip[] }) {
             {shown.map((e) => (
               <div key={e.epoch} className="flex w-8 flex-col items-center gap-0.5">
                 <span className="font-mono text-[10px] text-ink-secondary">{e.epoch}</span>
-                {e.inProgress && (
+                {e.epoch === currentEpoch && (
                   <span className="rounded-full border border-accent/30 px-1 py-px text-[8px] leading-none text-accent">
                     live
                   </span>

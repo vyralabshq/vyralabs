@@ -81,31 +81,48 @@ pub struct BlockProduction {
     pub dropped: Option<i64>,
 }
 
-/// Leader schedule + block production for the "is it producing" view. `leader_slots` is the
-/// whole-epoch assignment (absolute slots, sorted); the frontend groups the consecutive runs
-/// and derives produced/skipped/upcoming per slot against the current tip. Counts come from
-/// getBlockProduction. Empty (all None / empty vec) until an epoch's schedule is fetched.
+/// One epoch's final skip rate, for the history bars. Appended as each epoch closes.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EpochSkip {
+    pub epoch: i64,
+    pub skip_rate_pct: f64,
+}
+
+/// Leader schedule + block production for the "is it producing" view. `epoch` is the epoch
+/// whose schedule is shown — the current one, or the *next* one when the current has no
+/// assignment of ours (so "next leader" is useful in the epoch before our first slots).
+/// `leader_slots` is that epoch's whole assignment (absolute, sorted); the frontend groups
+/// the runs and derives produced/upcoming per slot against `current_slot`. Aggregate counts
+/// come from getBlockProduction. Empty (no leader_slots) until a schedule is fetched.
 #[derive(Debug, Clone, Serialize)]
 pub struct LeaderProduction {
     pub epoch: Option<i64>,
+    pub epoch_start_slot: Option<i64>,
+    pub epoch_end_slot: Option<i64>,
+    pub current_slot: Option<i64>,
     pub leader_slots: Vec<i64>,
     pub produced: Option<i64>,
     pub skipped: Option<i64>,
     pub skip_rate_pct: Option<f64>,
     pub cluster_skip_rate_pct: Option<f64>,
     pub next_leader_slot: Option<i64>,
+    pub skip_history: Vec<EpochSkip>,
 }
 
 impl LeaderProduction {
     pub fn empty() -> Self {
         LeaderProduction {
             epoch: None,
+            epoch_start_slot: None,
+            epoch_end_slot: None,
+            current_slot: None,
             leader_slots: Vec::new(),
             produced: None,
             skipped: None,
             skip_rate_pct: None,
             cluster_skip_rate_pct: None,
             next_leader_slot: None,
+            skip_history: Vec::new(),
         }
     }
 }
