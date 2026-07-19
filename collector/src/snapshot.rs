@@ -20,8 +20,11 @@ use crate::monitor::parse_monitor;
 use crate::osstats::{parse_os_stats, OsStatsInput};
 use crate::redact::Redactor;
 use crate::rpc::{parse_activated_stake, parse_balance, parse_epoch_info, parse_health, parse_version};
+use crate::blockproduction::{next_leader_slot, parse_block_production, skip_rate_pct};
+use crate::config;
 use crate::schema::{
-    empty_history, empty_latest, History, HistoryPoint, Latest, Version, VoteAccount,
+    empty_history, empty_latest, EpochSkip, History, HistoryPoint, Latest, LeaderProduction,
+    Version, VoteAccount,
 };
 use crate::voteaccount::parse_vote_account;
 use crate::window::roll;
@@ -74,6 +77,15 @@ pub struct Inputs {
     pub vote_account_json: Option<String>,
     /// Raw localhost `getVoteAccounts` — only for activated stake, which the CLI omits (#11).
     pub vote_accounts_json: Option<String>,
+    /// Epoch the leader schedule below belongs to (current, or next when the current has none
+    /// of our slots). Pairs with `leader_slots`.
+    pub leader_epoch: Option<i64>,
+    /// Our leader slots for `leader_epoch` (absolute, sorted), pre-parsed from `solana
+    /// leader-schedule` and cached by the caller — the raw text is the whole cluster's
+    /// schedule (~26 MB), so it is filtered to our identity before it reaches here.
+    pub leader_slots: Option<Vec<i64>>,
+    /// Raw localhost `getBlockProduction` for our identity (produced/skipped counts).
+    pub block_production_json: Option<String>,
     pub identity_pubkey: Option<String>,
     pub vote_pubkey: Option<String>,
     pub cluster: String,
@@ -286,6 +298,77 @@ pub fn build_snapshot(
                 None => errors.push("vote-account: not available".to_string()),
             }
         }
+    }
+
+    // Leader production (block-production section). The schedule (for the display epoch) is
+    // carried in already parsed; getBlockProduction gives the produced/skipped split. Empty
+    // (no leader_slots) until a schedule has been fetched — the frontend then shows its
+    // awaiting state rather than fake zeros.
+    {
+        let identity = inputs
+            .identity_pubkey
+            .as_deref()
+            .unwrap_or(config::IDENTITY_PUBKEY);
+        let current = latest.epoch.absolute_slot.or(latest.slots.processed);
+        let schedule = inputs.leader_slots.clone().unwrap_or_default();
+        let counts = inputs
+            .block_production_json
+            .as_deref()
+            .and_then(|j| parse_block_production(j, identity))
+            .unwrap_or_default();
+        let skip = skip_rate_pct(&counts);
+
+        // Slot bounds of the display epoch, so the frontend can position ticks. The current
+        // epoch spans [absolute - slot_index, +slots_in_epoch); the display epoch may be the
+        // next one, so shift by that many epochs.
+        let cur_epoch = latest.epoch.epoch;
+        let disp_epoch = inputs.leader_epoch.or(cur_epoch);
+        let slots_in_epoch = latest.epoch.slots_in_epoch;
+        let cur_start = latest
+            .epoch
+            .absolute_slot
+            .zip(latest.epoch.slot_index)
+            .map(|(abs, idx)| abs - idx);
+        let (epoch_start_slot, epoch_end_slot) = match (cur_start, slots_in_epoch, cur_epoch, disp_epoch) {
+            (Some(cs), Some(len), Some(ce), Some(de)) => {
+                let start = cs + (de - ce) * len;
+                (Some(start), Some(start + len))
+            }
+            _ => (None, None),
+        };
+
+        // Skip history: carry the prior array forward and upsert the display epoch's current
+        // rate, so each closed epoch keeps its last value and the current one updates live.
+        let mut skip_history: Vec<EpochSkip> = prev_state
+            .and_then(|s| s.get("leader_production"))
+            .and_then(|lp| lp.get("skip_history"))
+            .and_then(|h| serde_json::from_value::<Vec<EpochSkip>>(h.clone()).ok())
+            .unwrap_or_default();
+        if let (Some(ep), Some(rate)) = (disp_epoch, skip) {
+            match skip_history.iter_mut().find(|e| e.epoch == ep) {
+                Some(e) => e.skip_rate_pct = rate,
+                None => skip_history.push(EpochSkip { epoch: ep, skip_rate_pct: rate }),
+            }
+            skip_history.sort_by_key(|e| e.epoch);
+            let overflow = skip_history.len().saturating_sub(8);
+            skip_history.drain(0..overflow);
+        }
+
+        latest.leader_production = LeaderProduction {
+            epoch: disp_epoch,
+            epoch_start_slot,
+            epoch_end_slot,
+            current_slot: current,
+            next_leader_slot: current.and_then(|c| next_leader_slot(&schedule, c)),
+            leader_slots: schedule,
+            produced: counts.produced,
+            skipped: counts.skipped,
+            skip_rate_pct: skip,
+            // Cluster comparison: getBlockProduction with no identity filter gives cluster
+            // totals. Wired once verified on the box; None keeps the frontend honest until then.
+            cluster_skip_rate_pct: None,
+            skip_history,
+        };
     }
 
     // The current point carries the datapoint -> derived values for this cycle.

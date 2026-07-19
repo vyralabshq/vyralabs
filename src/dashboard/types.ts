@@ -39,6 +39,21 @@ export interface RawLatest {
 
   vote: { latest: number | null; root: number | null } | null;
   block_production: { produced: number | null; dropped: number | null } | null;
+  /** Leader schedule + block production for the "is it producing" section. Absent on old
+      collector builds; present (leader_slots possibly empty) once block production lands. */
+  leader_production?: {
+    epoch: number | null;
+    epoch_start_slot: number | null;
+    epoch_end_slot: number | null;
+    current_slot: number | null;
+    leader_slots: number[];
+    produced: number | null;
+    skipped: number | null;
+    skip_rate_pct: number | null;
+    cluster_skip_rate_pct: number | null;
+    next_leader_slot: number | null;
+    skip_history: { epoch: number; skip_rate_pct: number }[];
+  } | null;
   /** Raw 0-1 fraction from the bank_weight datapoint; frontend derives % = *100. */
   fork_weight: number | null;
 
@@ -139,6 +154,28 @@ export interface RecentVote {
   latency: number | null;
 }
 
+export interface EpochSkip {
+  epoch: number;
+  skipRatePct: number;
+}
+
+/** Parsed leader schedule + block production for the "is it producing" section. `epoch` is
+    the displayed epoch (current, or next when the current has none of our slots). Per-slot
+    produced/skipped is derived on the frontend from `currentSlot` until getBlocks lands. */
+export interface LeaderProduction {
+  epoch: number | null;
+  epochStartSlot: number | null;
+  epochEndSlot: number | null;
+  currentSlot: number | null;
+  leaderSlots: number[];
+  produced: number | null;
+  skipped: number | null;
+  skipRatePct: number | null;
+  clusterSkipRatePct: number | null;
+  nextLeaderSlot: number | null;
+  skipHistory: EpochSkip[];
+}
+
 /** Whole-page liveness signal (#7). Values always visible, just dimmed off LIVE. */
 export type Liveness = "LIVE" | "STALE" | "OFFLINE";
 
@@ -199,6 +236,10 @@ export interface DashboardState {
   dropRatePct: number | null;
   /** derived: fork_weight * 100 */
   forkWeightPct: number | null;
+
+  /** Leader schedule + block production ("is it producing"). null until the collector emits
+      it (old builds) or before any schedule is fetched. */
+  leaderProduction: LeaderProduction | null;
 
   // System (#4)
   ledgerDisk: DiskUsage;

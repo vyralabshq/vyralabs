@@ -15,6 +15,7 @@ pub mod rpc;
 pub mod schema;
 pub mod snapshot;
 pub mod state;
+pub mod blockproduction;
 pub mod voteaccount;
 pub mod window;
 

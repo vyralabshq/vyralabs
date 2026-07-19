@@ -24,6 +24,10 @@ import { RecentVotes } from "./components/RecentVotes";
 import { IconVote } from "./components/icons";
 import { SystemStrip } from "./components/SystemStrip";
 import { NetworkStrip } from "./components/NetworkStrip";
+import { StatStrip } from "./components/StatStrip";
+import { LeaderTimeline } from "./components/LeaderTimeline";
+import { BlocksPerEpoch } from "./components/BlocksPerEpoch";
+import { buildLeaderGroups, upcomingCount } from "./blockGroups";
 import { NodeCaughtUpStrip } from "./components/NodeCaughtUpStrip";
 import { VoteCredits } from "./components/VoteCredits";
 import { EventFeed } from "./components/EventFeed";
@@ -190,6 +194,41 @@ export default function Dashboard() {
 
   // Smoothed finality-lag line for the history chart.
   const finalityLagChart = ema(finalityLagSeries, 0.35);
+
+  // Block production ("is it producing"), off the collector's leader_production. Present only
+  // once block production lands and a schedule is fetched; null (old build) or empty schedule
+  // -> the section shows an awaiting state instead of fake zeros.
+  const lp = s.leaderProduction;
+  const hasBlocks = lp !== null && lp.leaderSlots.length > 0;
+  const leaderGroups = lp ? buildLeaderGroups(lp) : [];
+  const blockUpcoming = lp ? upcomingCount(lp) : 0;
+  // Next leader: slot count -> ETA at 400ms/slot, plus wall-clock arrival ("how long" vs "can
+  // I step away"). null when every assignment this epoch has already passed.
+  const nextLeaderIn =
+    lp && lp.nextLeaderSlot !== null && lp.currentSlot !== null
+      ? lp.nextLeaderSlot - lp.currentSlot
+      : null;
+  const nextLeaderMin =
+    nextLeaderIn === null ? null : Math.round((nextLeaderIn * 0.4) / 60);
+  const nextLeaderClock =
+    nextLeaderIn === null
+      ? null
+      : new Date(now.getTime() + nextLeaderIn * 400).toLocaleTimeString("en-GB", {
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "UTC",
+        });
+  // Donut % guards divide-by-zero at the epoch-start state (0 of 136, all upcoming).
+  const blockTotal = lp ? lp.leaderSlots.length : 0;
+  const blockPct = (v: number) =>
+    blockTotal === 0 ? 0 : Math.round((v / blockTotal) * 100);
+  const blockDonut = lp
+    ? [
+        { name: "produced", value: lp.produced ?? 0, color: CHART.ok },
+        { name: "skipped", value: lp.skipped ?? 0, color: CHART.down },
+        { name: "upcoming", value: blockUpcoming, color: CHART.inkMuted },
+      ]
+    : [];
 
   // Vote-credit economics for the current epoch (the SFDP-relevant view), derived from the
   // one in-progress epoch row. Efficiency = credits captured vs the theoretical max for the
@@ -358,6 +397,120 @@ export default function Dashboard() {
               sub={<>chain tip {fmtInt(s.processedSlot) ?? "?"}</>}
             />
           </div>
+        </section>
+
+        {/* Is it producing: the block-side mirror of "is it voting". Off the collector's
+            leader_production; before our first assignment (or on a pre-block-production build)
+            it shows an awaiting line instead of fake numbers. Per-slot skip coloring is
+            aggregate-only until getBlocks lands (see the donut / skip rate for exact skips). */}
+        <section className="mt-10">
+          <p className={sectionLabel}>IS IT PRODUCING</p>
+
+          {!hasBlocks ? (
+            <div className="panel p-4 font-mono text-[13px] text-ink-tertiary">
+              {lp && lp.nextLeaderSlot !== null ? (
+                <>
+                  next leader{" "}
+                  <span className="tabular-nums text-ink">{fmtInt(lp.nextLeaderSlot)}</span>
+                  {nextLeaderIn !== null && (
+                    <>
+                      {" "}
+                      · in {fmtInt(nextLeaderIn)} slots · ~{nextLeaderMin}m · {nextLeaderClock}{" "}
+                      UTC
+                    </>
+                  )}
+                  {" — no leader slots yet this epoch"}
+                </>
+              ) : (
+                "awaiting leader schedule"
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="mb-3">
+                <StatStrip>
+                  <span className="flex items-baseline gap-1.5">
+                    <span className="text-[11px] tracking-[0.08em] text-ink-tertiary">
+                      next leader
+                    </span>
+                    <span className="tabular-nums text-ink">
+                      {fmtInt(lp.nextLeaderSlot) ?? "—"}
+                    </span>
+                    <span className="text-xs text-ink-secondary">
+                      {nextLeaderIn === null
+                        ? "epoch complete"
+                        : `in ${fmtInt(nextLeaderIn)} slots · ~${nextLeaderMin}m · ${nextLeaderClock} UTC`}
+                    </span>
+                    <InfoTip text="The next slot your validator is scheduled to lead. The single most-checked number for an operator with stake: it tells you when the node next has to produce blocks." />
+                  </span>
+                  <span className="flex items-baseline gap-1.5">
+                    <span className="text-[11px] tracking-[0.08em] text-ink-tertiary">skip rate</span>
+                    <span className="tabular-nums text-ok">
+                      {fmtPct(lp.skipRatePct, 1) ?? "—"}
+                    </span>
+                    {lp.clusterSkipRatePct !== null && (
+                      <span className="text-xs text-ink-secondary">
+                        cluster {lp.clusterSkipRatePct.toFixed(1)}%
+                      </span>
+                    )}
+                    <InfoTip text="Share of your leader slots that were skipped rather than produced. SFDP's bonus needs it under ~40.8%; a healthy node lands 0-5%." />
+                  </span>
+                  <span className="flex items-baseline gap-1.5">
+                    <span className="text-[11px] tracking-[0.08em] text-ink-tertiary">blocks</span>
+                    <span className="tabular-nums text-ink">{fmtInt(lp.produced ?? 0)}</span>
+                    <span className="text-xs text-ink-secondary">
+                      of {fmtInt(lp.leaderSlots.length)} leader slots
+                    </span>
+                  </span>
+                </StatStrip>
+              </div>
+
+              <div className="mb-3">
+                <LeaderTimeline
+                  groups={leaderGroups}
+                  epochStart={lp.epochStartSlot ?? lp.leaderSlots[0]}
+                  epochEnd={lp.epochEndSlot ?? lp.leaderSlots[lp.leaderSlots.length - 1]}
+                  currentSlot={lp.currentSlot ?? 0}
+                />
+              </div>
+
+              <Suspense fallback={<div className="h-56 panel" />}>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div className="panel p-4">
+                    <p className="mb-1 flex items-center gap-1.5 text-[13px] text-ink-secondary">
+                      Block production
+                      <InfoTip text="This epoch's leader slots split three ways: blocks produced, slots skipped, and slots still upcoming in the schedule." />
+                    </p>
+                    <DonutChart
+                      segments={blockDonut}
+                      centerTop={fmtInt(lp.produced ?? 0) ?? ""}
+                      centerBottom="produced"
+                    />
+                    <div className="mt-2 flex flex-col gap-1">
+                      {blockDonut.map((seg) => (
+                        <div
+                          key={seg.name}
+                          className="flex items-center justify-between font-mono text-[11px]"
+                        >
+                          <span className="flex items-center gap-1.5 text-ink-secondary">
+                            <span
+                              className="inline-block h-2 w-2 rounded-full"
+                              style={{ backgroundColor: seg.color }}
+                            />
+                            {seg.name}
+                          </span>
+                          <span className="tabular-nums text-ink-tertiary">
+                            {blockPct(seg.value)}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <BlocksPerEpoch history={lp.skipHistory} currentEpoch={lp.epoch} />
+                </div>
+              </Suspense>
+            </>
+          )}
         </section>
 
         {/* This epoch: how credits are actually accruing, epoch by epoch */}
