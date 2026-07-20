@@ -84,8 +84,8 @@ pub struct Inputs {
     /// leader-schedule` and cached by the caller — the raw text is the whole cluster's
     /// schedule (~26 MB), so it is filtered to our identity before it reaches here.
     pub leader_slots: Option<Vec<i64>>,
-    /// Raw localhost `getBlockProduction` for our identity (produced/skipped counts).
-    pub block_production_json: Option<String>,
+    /// Raw `solana block-production` text; parsed to our identity's produced/skipped counts.
+    pub block_production_text: Option<String>,
     pub identity_pubkey: Option<String>,
     pub vote_pubkey: Option<String>,
     pub cluster: String,
@@ -311,9 +311,7 @@ pub fn build_snapshot(
             .unwrap_or(config::IDENTITY_PUBKEY);
         let current = latest.epoch.absolute_slot.or(latest.slots.processed);
         let schedule = inputs.leader_slots.clone().unwrap_or_default();
-        let counts = inputs
-            .block_production_json
-            .as_deref()
+        let counts = inputs.block_production_text.as_deref()
             .and_then(|j| parse_block_production(j, identity))
             .unwrap_or_default();
         let skip = skip_rate_pct(&counts);

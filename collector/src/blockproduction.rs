@@ -15,8 +15,6 @@
 //!
 //! Pure over the fetched text/JSON; no I/O here.
 
-use serde_json::Value;
-
 /// Parse `solana leader-schedule` text into the absolute slots assigned to `identity`,
 /// sorted ascending. Lines look like `  423055092       vyRa8J7...`. Anything that does not
 /// parse (headers, blank lines, a broken-pipe panic tail) is skipped.
@@ -35,8 +33,7 @@ pub fn parse_leader_schedule(text: &str, identity: &str) -> Vec<i64> {
     slots
 }
 
-/// Produced/skipped counts for our identity from `getBlockProduction`. `skipped` is
-/// `leaderSlots - blocksProduced` over the range the RPC covers (epoch start -> current).
+/// Produced/skipped counts for our identity, read from `solana block-production` text.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct BlockCounts {
     pub leader_slots: Option<i64>,
@@ -44,21 +41,27 @@ pub struct BlockCounts {
     pub skipped: Option<i64>,
 }
 
-/// Map `getBlockProduction` for `identity`. Returns None if the envelope is unparseable;
-/// individual fields stay None if absent, so a partial response never panics.
-pub fn parse_block_production(json: &str, identity: &str) -> Option<BlockCounts> {
-    let v: Value = serde_json::from_str(json).ok()?;
-    let by = &v["result"]["value"]["byIdentity"][identity];
-    // byIdentity[id] is the pair [leaderSlots, blocksProduced].
-    let leader_slots = by.get(0).and_then(Value::as_i64);
-    let produced = by.get(1).and_then(Value::as_i64);
-    let skipped = leader_slots
-        .zip(produced)
-        .map(|(l, p)| (l - p).max(0));
-    Some(BlockCounts {
-        leader_slots,
-        produced,
-        skipped,
+/// Parse `solana block-production` for `identity`. The output is a per-validator table:
+///
+/// ```text
+///   <identity>   <leader_slots>   <blocks_produced>   <skipped>   <skip_pct>
+/// ```
+///
+/// Verified against real box output (28/28/0/0.00% for us at epoch 992). We find our row and
+/// read columns 1-3; the header and totals lines don't match our identity, so they're skipped.
+/// Uses the CLI rather than the getBlockProduction RPC, whose response shape we couldn't
+/// confirm — the CLI is the same source the operator checks by hand.
+pub fn parse_block_production(text: &str, identity: &str) -> Option<BlockCounts> {
+    text.lines().find_map(|line| {
+        let cols: Vec<&str> = line.split_whitespace().collect();
+        if cols.first() != Some(&identity) {
+            return None;
+        }
+        Some(BlockCounts {
+            leader_slots: cols.get(1).and_then(|s| s.parse().ok()),
+            produced: cols.get(2).and_then(|s| s.parse().ok()),
+            skipped: cols.get(3).and_then(|s| s.parse().ok()),
+        })
     })
 }
 

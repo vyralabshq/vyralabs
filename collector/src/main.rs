@@ -94,7 +94,7 @@ fn run_once(args: &[String]) -> ExitCode {
         leader_epoch: None,
         leader_slots: read_file("--leader-schedule")
             .map(|t| parse_leader_schedule(&t, IDENTITY_PUBKEY)),
-        block_production_json: read_file("--block-production"),
+        block_production_text: read_file("--block-production"),
         identity_pubkey: Some(IDENTITY_PUBKEY.to_string()),
         vote_pubkey: Some(VOTE_PUBKEY.to_string()),
         cluster: CLUSTER.to_string(),
@@ -209,12 +209,8 @@ fn run_daemon() -> ExitCode {
                 .flatten(),
             leader_epoch: leader_schedule.as_ref().map(|(_, disp, _)| *disp),
             leader_slots: leader_schedule.as_ref().map(|(_, _, s)| s.clone()),
-            // Identity-filtered getBlockProduction stays small, so fetch it every cycle.
-            block_production_json: fetch::curl_rpc(
-                &rpc_url,
-                "getBlockProduction",
-                &format!("[{{\"identity\":\"{IDENTITY_PUBKEY}\"}}]"),
-            ),
+            // `solana block-production` table; snapshot filters to our identity's row.
+            block_production_text: fetch::fetch_block_production(),
             jito_client: Some(IS_JITO_CLIENT),
             identity_pubkey: Some(IDENTITY_PUBKEY.to_string()),
             vote_pubkey: Some(VOTE_PUBKEY.to_string()),
