@@ -103,16 +103,67 @@ pub fn fetch_block_production() -> Option<String> {
     run("solana", &["-ut", "block-production"])
 }
 
-/// Detect the validator client from the live process (issue #10): resolve the running
-/// `agave-validator` binary via /proc and ask it `--version`. Agave prints `client:Agave`,
-/// jito-solana prints `client:JitoLabs`. Returns None when the process/exe can't be read
-/// (validator down, non-Linux dev box) — jito shows null, never a stale guess.
+/// Parse `agave-validator --version` (or jito-solana) stdout into jito / not-jito.
+///
+/// Real outputs look like:
+///   `agave-validator 2.x.x (src:devbuild; feat:…; client:Agave)`
+///   `agave-validator 2.x.x (src:…; client:JitoLabs)`
+/// Returns None when the client marker is missing so we never invent a flavor.
+pub fn parse_client_is_jito(version_output: &str) -> Option<bool> {
+    let lower = version_output.to_ascii_lowercase();
+    if lower.contains("client:jitolabs") || lower.contains("client: jitolabs") {
+        return Some(true);
+    }
+    if lower.contains("client:agave") || lower.contains("client: agave") {
+        return Some(false);
+    }
+    // Older jito builds sometimes only say "jito" in the banner without client:.
+    if lower.contains("jitolabs") || lower.contains("jito-solana") {
+        return Some(true);
+    }
+    None
+}
+
+/// Detect the validator client from the live process (issue #10).
+///
+/// Prefer the systemd unit's MainPID (authoritative for `sol.service`), fall back to
+/// `pgrep` for the validator binary. Then run that exe's `--version` and parse the
+/// client marker. Returns None when the process/exe can't be read — jito stays null
+/// in latest.json, never a stale config guess that lied after jito → agave.
 pub fn detect_jito_client() -> Option<bool> {
-    let pids = run("pgrep", &["-f", "agave-validator"])?;
-    let pid = pids.trim().lines().next()?.trim().to_string();
+    detect_jito_client_for_service(crate::config::SERVICE_NAME)
+}
+
+/// Same as [`detect_jito_client`] but takes the unit name (testable / overrideable).
+pub fn detect_jito_client_for_service(service: &str) -> Option<bool> {
+    let pid = validator_pid(service)?;
     let exe = std::fs::read_link(format!("/proc/{pid}/exe")).ok()?;
     let version = run(exe.to_str()?, &["--version"])?;
-    Some(version.contains("client:JitoLabs"))
+    parse_client_is_jito(&version)
+}
+
+/// Resolve the running validator PID: systemd MainPID first, then pgrep.
+fn validator_pid(service: &str) -> Option<String> {
+    // systemctl show -p MainPID --value → "12345" or "0" if inactive.
+    if let Some(out) = run("systemctl", &["show", service, "-p", "MainPID", "--value"]) {
+        let pid = out.trim();
+        if !pid.is_empty() && pid != "0" {
+            return Some(pid.to_string());
+        }
+    }
+    // Fallback: first agave-validator / solana-validator process. `-x` matches the comm
+    // name, which /proc truncates to 15 chars — "solana-validator" is 16, so match its
+    // truncation ("agave-validator" is exactly 15 and unaffected).
+    for pattern in ["agave-validator", "solana-validato"] {
+        if let Some(pids) = run("pgrep", &["-x", pattern]) {
+            if let Some(pid) = pids.trim().lines().next().map(str::trim) {
+                if !pid.is_empty() {
+                    return Some(pid.to_string());
+                }
+            }
+        }
+    }
+    None
 }
 
 /// Gather OS stats by running local commands / reading /proc. Each field independent;
@@ -126,5 +177,28 @@ pub fn gather_os_stats(ledger_path: &str, accounts_path: &str, service: &str) ->
         nproc: run("nproc", &[]),
         active_enter: run("systemctl", &["show", service, "-p", "ActiveEnterTimestamp"]),
         is_active: run("systemctl", &["is-active", service]),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_client_is_jito;
+
+    #[test]
+    fn detects_agave_client_marker() {
+        let out = "agave-validator 2.2.14 (src:devbuild; feat:123; client:Agave)";
+        assert_eq!(parse_client_is_jito(out), Some(false));
+    }
+
+    #[test]
+    fn detects_jito_client_marker() {
+        let out = "agave-validator 2.1.0 (src:abc; feat:9; client:JitoLabs)";
+        assert_eq!(parse_client_is_jito(out), Some(true));
+    }
+
+    #[test]
+    fn unknown_banner_is_none_not_a_guess() {
+        assert_eq!(parse_client_is_jito("agave-validator 2.0.0"), None);
+        assert_eq!(parse_client_is_jito(""), None);
     }
 }
