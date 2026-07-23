@@ -30,7 +30,7 @@ export function PostPage() {
 
 
   return (
-    <Chrome width="max-w-[720px]">
+    <Chrome width="max-w-[800px]">
       <article className="pt-8 pb-4">
         <Link
           to="/"
@@ -51,22 +51,20 @@ export function PostPage() {
               <span>{fm.readingMinutes} min read</span>
             )}
           </div>
-          <h1 className="mt-3 font-display text-[clamp(28px,4.5vw,40px)] font-bold leading-[1.1] tracking-[-0.02em] text-ink">
+          {/* Long ops-log titles wrap 2-3 lines at 34px; the old 40px cap hit 5 lines
+              and the display face overwhelmed the page before the article started. */}
+          <h1 className="mt-3 font-display text-[clamp(21px,2.8vw,28px)] font-bold leading-[1.25] tracking-[-0.02em] text-ink">
             {fm.title}
           </h1>
           {fm.summary && (
-            <p className="mt-4 text-[17px] leading-relaxed text-ink-secondary">
+            <p className="mt-4 font-text text-[16px] leading-relaxed text-ink-secondary">
               {fm.summary}
             </p>
           )}
-          {fm.author && (
-            <p className="mt-5 font-mono text-[12px] text-ink-secondary">
-              written by {fm.author}
-            </p>
-          )}
-          {fm.tags && fm.tags.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-2 font-mono text-[11px] text-ink-tertiary">
-              {fm.tags.map((t) => (
+          {(fm.author || (fm.tags && fm.tags.length > 0)) && (
+            <div className="mt-5 flex flex-wrap items-baseline gap-x-4 gap-y-2 font-mono text-[11px] tracking-[0.04em] text-ink-tertiary">
+              {fm.author && <span className="text-ink-secondary">by {fm.author}</span>}
+              {fm.tags?.map((t) => (
                 <span key={t}>#{t}</span>
               ))}
             </div>

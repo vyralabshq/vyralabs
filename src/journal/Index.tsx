@@ -39,7 +39,7 @@ function PostCard({ p, featured = false }: { p: Post; featured?: boolean }) {
 
       <h2
         className={`mt-2 font-display font-bold leading-snug tracking-[-0.01em] text-ink transition-colors group-hover:text-accent ${
-          featured ? "text-[clamp(19px,2.2vw,23px)]" : "text-[15px]"
+          featured ? "text-[clamp(17px,1.9vw,20px)]" : "text-[15px]"
         }`}
       >
         {fm.title}
@@ -47,7 +47,7 @@ function PostCard({ p, featured = false }: { p: Post; featured?: boolean }) {
 
       {fm.summary && (
         <p
-          className={`mt-1.5 leading-relaxed text-ink-secondary ${
+          className={`mt-1.5 font-text leading-relaxed text-ink-secondary ${
             featured ? "max-w-[70ch] text-[14px]" : "line-clamp-3 text-[12.5px]"
           }`}
         >
@@ -80,10 +80,10 @@ export function Index() {
         <p className="mb-[18px] font-mono text-xs tracking-[0.18em] text-accent">
           FIELD NOTES
         </p>
-        <h1 className="max-w-[18ch] font-display text-[clamp(32px,5vw,46px)] font-bold leading-[1.08] tracking-[-0.03em]">
+        <h1 className="max-w-[24ch] font-display text-[clamp(26px,3.6vw,36px)] font-bold leading-[1.15] tracking-[-0.03em]">
           What actually breaks, and how it got fixed.
         </h1>
-        <p className="mt-5 max-w-[62ch] text-[17px] leading-relaxed text-ink-secondary">
+        <p className="mt-5 max-w-[62ch] font-text text-[16px] leading-relaxed text-ink-secondary">
           Operational notes from running a Solana validator in the open. Real
           problems, the real logs, the root cause, and the exact fix. Written so
           another operator could learn from them.

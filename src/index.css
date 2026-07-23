@@ -24,9 +24,12 @@
   --color-ink-tertiary: #97764f;
   --color-ink-muted: #6e503a;
 
-  /* Fonts */
+  /* Fonts. Syne is a display face — headlines and site chrome only. Long-form reading
+     gets IBM Plex Sans (`--font-text`): humanist, built for body copy, and it pairs with
+     JetBrains Mono. Setting Syne as the body font was why the journal felt off to read. */
   --font-display: "Syne", system-ui, sans-serif;
   --font-sans: "Syne", system-ui, sans-serif;
+  --font-text: "IBM Plex Sans", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
 
   /* Pulse-dot animation */
@@ -162,9 +165,10 @@
    per-element classes. Reading-optimized: ~17px body, generous line-height, code blocks
    scroll horizontally instead of wrapping. */
 .fieldnote {
+  font-family: var(--font-text);
   color: var(--color-ink);
-  font-size: 17px;
-  line-height: 1.72;
+  font-size: 16px;
+  line-height: 1.75;
 }
 .fieldnote > * + * {
   margin-top: 1.2em;
@@ -226,14 +230,14 @@
   border-top: 1px solid color-mix(in srgb, var(--color-accent) 12%, transparent);
   margin: 2.4em 0;
 }
-/* Inline code */
+/* Inline code: quiet. The old bordered pill broke line rhythm mid-sentence; a faint
+   tint and the mono face are enough to mark it without shouting. */
 .fieldnote code {
   font-family: var(--font-mono);
   font-size: 0.86em;
-  background: var(--color-elevated);
-  border: 1px solid color-mix(in srgb, var(--color-accent) 12%, transparent);
-  border-radius: 5px;
-  padding: 0.1em 0.4em;
+  background: color-mix(in srgb, var(--color-elevated) 70%, transparent);
+  border-radius: 4px;
+  padding: 0.08em 0.32em;
   color: var(--color-accent-bright);
 }
 /* Code blocks: scroll, do not wrap */

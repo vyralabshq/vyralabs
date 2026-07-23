@@ -22,7 +22,9 @@ export function Chrome({
   const container = `relative z-10 mx-auto w-full ${width} px-6`;
   return (
     <div className="flex min-h-screen flex-col">
-      <div className="grid-bg" aria-hidden="true" />
+      {/* Halved: full-strength dots are fine behind dashboard panels but read as
+          noise under long-form paragraphs. */}
+      <div className="grid-bg opacity-50" aria-hidden="true" />
       <div className="glow" aria-hidden="true" />
 
       <header className={`${container} flex h-18 shrink-0 items-center justify-between`}>
