@@ -56,7 +56,7 @@ export function LeaderTimeline({
     <div className="panel p-4 sm:p-5">
       <p className="mb-4 flex items-center gap-1.5 text-[13px] text-ink-secondary">
         Leader groups this epoch
-        <InfoTip text="Every leader assignment this epoch, positioned by where it falls in the 432,000-slot span. Each group is a 4-slot window. Colour shows the outcome; the line marks the current slot." />
+        <InfoTip text="Every leader assignment this epoch, positioned by where it falls in the 432,000-slot span. Each group is a 4-slot window. Colour shows the outcome, verified per slot against cluster block history; the line marks the current slot. Unverified means the block evidence was already purged from ledger history before it could be checked — not an error, just no proof either way." />
       </p>
 
       {/* Track: ticks sit on a baseline, the now-marker sweeps left to right as the epoch runs. */}
