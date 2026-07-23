@@ -223,9 +223,9 @@ export function parseSnapshot(raw: unknown, now: Date): DashboardState {
 
   const lp = asObject(root.leader_production);
   if (lp) {
-    const slots = Array.isArray(lp.leader_slots)
-      ? lp.leader_slots.filter((x): x is number => typeof x === "number")
-      : [];
+    const slotArray = (v: unknown): number[] =>
+      Array.isArray(v) ? v.filter((x): x is number => typeof x === "number") : [];
+    const slots = slotArray(lp.leader_slots);
     const history = Array.isArray(lp.skip_history)
       ? lp.skip_history.flatMap((h) => {
           const o = asObject(h);
@@ -242,6 +242,8 @@ export function parseSnapshot(raw: unknown, now: Date): DashboardState {
       epochEndSlot: num(lp.epoch_end_slot),
       currentSlot: num(lp.current_slot),
       leaderSlots: slots,
+      producedSlots: slotArray(lp.produced_slots),
+      resolvedSlots: slotArray(lp.resolved_slots),
       produced: num(lp.produced),
       skipped: num(lp.skipped),
       skipRatePct: num(lp.skip_rate_pct),

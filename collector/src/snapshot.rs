@@ -85,6 +85,11 @@ pub struct Inputs {
     /// leader-schedule` and cached by the caller — the raw text is the whole cluster's
     /// schedule (~26 MB), so it is filtered to our identity before it reaches here.
     pub leader_slots: Option<Vec<i64>>,
+    /// Per-slot ledger verification, resolved by the daemon (getBlocks per past group):
+    /// slots confirmed to have a block, and slots whose group was successfully checked.
+    /// Unresolved past slots (unchecked or purged) appear in neither.
+    pub produced_slots: Option<Vec<i64>>,
+    pub resolved_slots: Option<Vec<i64>>,
     /// Raw `solana block-production` text; parsed to our identity's produced/skipped counts.
     pub block_production_text: Option<String>,
     pub identity_pubkey: Option<String>,
@@ -347,6 +352,8 @@ pub fn build_snapshot(
             current_slot: current,
             next_leader_slot: current.and_then(|c| next_leader_slot(&schedule, c)),
             leader_slots: schedule,
+            produced_slots: inputs.produced_slots.clone().unwrap_or_default(),
+            resolved_slots: inputs.resolved_slots.clone().unwrap_or_default(),
             produced: counts.produced,
             skipped: counts.skipped,
             skip_rate_pct: skip,

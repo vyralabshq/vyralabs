@@ -78,3 +78,22 @@ pub fn skip_rate_pct(counts: &BlockCounts) -> Option<f64> {
 pub fn next_leader_slot(schedule: &[i64], current_slot: i64) -> Option<i64> {
     schedule.iter().copied().find(|&s| s > current_slot)
 }
+
+/// Split a sorted schedule into consecutive-slot runs as (first, last) pairs — the same
+/// 4-slot leader groups the dashboard timeline draws. Used to resolve per-group production
+/// with one getBlocks range call each.
+pub fn group_runs(schedule: &[i64]) -> Vec<(i64, i64)> {
+    let mut runs = Vec::new();
+    let mut iter = schedule.iter().copied();
+    let Some(mut start) = iter.next() else { return runs };
+    let mut prev = start;
+    for s in iter {
+        if s != prev + 1 {
+            runs.push((start, prev));
+            start = s;
+        }
+        prev = s;
+    }
+    runs.push((start, prev));
+    runs
+}

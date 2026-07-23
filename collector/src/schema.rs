@@ -97,6 +97,12 @@ pub struct LeaderProduction {
     pub epoch_end_slot: Option<i64>,
     pub current_slot: Option<i64>,
     pub leader_slots: Vec<i64>,
+    /// Past leader slots verified against the ledger (getBlocks per group). A past slot in
+    /// `resolved_slots` but not `produced_slots` was genuinely skipped; a past slot in
+    /// neither is unknown (not yet checked, or purged past getFirstAvailableBlock) — the
+    /// frontend must render unknown as unknown, never as produced.
+    pub produced_slots: Vec<i64>,
+    pub resolved_slots: Vec<i64>,
     pub produced: Option<i64>,
     pub skipped: Option<i64>,
     pub skip_rate_pct: Option<f64>,
@@ -113,6 +119,8 @@ impl LeaderProduction {
             epoch_end_slot: None,
             current_slot: None,
             leader_slots: Vec::new(),
+            produced_slots: Vec::new(),
+            resolved_slots: Vec::new(),
             produced: None,
             skipped: None,
             skip_rate_pct: None,

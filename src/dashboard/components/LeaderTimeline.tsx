@@ -6,11 +6,15 @@ import { InfoTip } from "./InfoTip";
 // language: same panel, same status tones (green produced / amber partial / red skipped /
 // muted upcoming). A "now" marker shows how far the epoch has run.
 
-type GroupState = "produced" | "partial" | "skipped" | "upcoming";
+type GroupState = "produced" | "partial" | "skipped" | "unknown" | "upcoming";
 
 function groupState(g: LeaderGroup): GroupState {
   const skipped = g.slots.filter((s) => s === "skipped").length;
   const produced = g.slots.filter((s) => s === "produced").length;
+  const unknown = g.slots.filter((s) => s === "unknown").length;
+  // A group resolves whole (one getBlocks range), so unknown means the ledger evidence
+  // isn't in yet — render that honestly rather than defaulting to green.
+  if (unknown > 0) return "unknown";
   if (produced === 0 && skipped === 0) return "upcoming";
   if (skipped === 0) return "produced";
   if (produced === 0) return "skipped";
@@ -21,6 +25,7 @@ const TICK: Record<GroupState, string> = {
   produced: "bg-ok",
   partial: "bg-accent-bright",
   skipped: "bg-down",
+  unknown: "bg-ink-muted/70",
   upcoming: "bg-ink-muted/40",
 };
 
@@ -28,6 +33,7 @@ const LEGEND: { state: GroupState; label: string }[] = [
   { state: "produced", label: "all produced" },
   { state: "partial", label: "partial" },
   { state: "skipped", label: "all skipped" },
+  { state: "unknown", label: "unverified" },
   { state: "upcoming", label: "upcoming" },
 ];
 
@@ -64,7 +70,9 @@ export function LeaderTimeline({
           const outcome =
             state === "upcoming"
               ? "upcoming"
-              : `${produced} produced${skipped ? `, ${skipped} skipped` : ""}`;
+              : state === "unknown"
+                ? "unverified"
+                : `${produced} produced${skipped ? `, ${skipped} skipped` : ""}`;
           return (
             <div
               key={i}

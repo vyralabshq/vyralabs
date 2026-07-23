@@ -21,11 +21,11 @@ use std::time::{Duration, Instant};
 
 use chrono::Utc;
 
-use collector::blockproduction::parse_leader_schedule;
+use collector::blockproduction::{group_runs, parse_leader_schedule};
 use collector::config::{
     ACCOUNTS_PATH, CLUSTER, IDENTITY_PUBKEY, LEDGER_PATH, SERVICE_NAME, VOTE_PUBKEY,
 };
-use collector::rpc::parse_epoch_info;
+use collector::rpc::{parse_blocks, parse_epoch_info, parse_slot_number};
 use collector::state::{load_state, save_state};
 use collector::{build_snapshot, fetch, Inputs, SnapshotResult};
 
@@ -91,6 +91,9 @@ fn run_once(args: &[String]) -> ExitCode {
         leader_epoch: None,
         leader_slots: read_file("--leader-schedule")
             .map(|t| parse_leader_schedule(&t, IDENTITY_PUBKEY)),
+        // Per-slot verification is daemon-only (it needs live getBlocks against the box).
+        produced_slots: None,
+        resolved_slots: None,
         block_production_text: read_file("--block-production"),
         identity_pubkey: Some(IDENTITY_PUBKEY.to_string()),
         vote_pubkey: Some(VOTE_PUBKEY.to_string()),
@@ -146,6 +149,12 @@ fn run_daemon() -> ExitCode {
     // display_epoch is the current epoch when it holds any of our slots, else the next epoch
     // — so the epoch before our first assignment still shows a useful "next leader".
     let mut leader_schedule: Option<(i64, i64, Vec<i64>)> = None;
+    // Per-group ledger verification (which of our past leader slots actually have a block),
+    // keyed on the display epoch. group start -> produced slots in that group, filled by one
+    // getBlocks range call per group and kept for the epoch — a finalized group never
+    // changes. Unresolvable groups (purged past getFirstAvailableBlock) stay absent, so the
+    // snapshot reports them as unknown rather than guessing.
+    let mut production_cache: Option<(i64, std::collections::HashMap<i64, Vec<i64>>)> = None;
     eprintln!(
         "collector daemon up: cycle {}s, out {}, rpc {rpc_url}",
         cycle.as_secs(),
@@ -183,6 +192,61 @@ fn run_daemon() -> ExitCode {
             }
         }
 
+        // Resolve past leader groups against the ledger, a few per cycle. Gated on the
+        // finalized tip (not processed): during a finality stall a produced block is not
+        // yet in finalized getBlocks, and caching it as skipped would be a permanent lie.
+        if let Some((_, disp, slots)) = leader_schedule.as_ref() {
+            if production_cache.as_ref().is_none_or(|(e, _)| e != disp) {
+                production_cache = Some((*disp, std::collections::HashMap::new()));
+            }
+            let cache = &mut production_cache.as_mut().expect("just set").1;
+            let finalized =
+                fetch::curl_rpc(&rpc_url, "getSlot", "[{\"commitment\":\"finalized\"}]")
+                    .as_deref()
+                    .and_then(parse_slot_number);
+            if let Some(tip) = finalized {
+                let unresolved: Vec<(i64, i64)> = group_runs(slots)
+                    .into_iter()
+                    .filter(|(start, end)| *end < tip && !cache.contains_key(start))
+                    .collect();
+                if !unresolved.is_empty() {
+                    // Purge floor: below getFirstAvailableBlock the ledger has no evidence
+                    // either way, so those groups are skipped here and stay unknown.
+                    let floor = fetch::curl_rpc(&rpc_url, "getFirstAvailableBlock", "[]")
+                        .as_deref()
+                        .and_then(parse_slot_number);
+                    if let Some(floor) = floor {
+                        for (gs, ge) in unresolved.into_iter().filter(|(s, _)| *s >= floor).take(12)
+                        {
+                            let blocks =
+                                fetch::curl_rpc(&rpc_url, "getBlocks", &format!("[{gs},{ge}]"))
+                                    .as_deref()
+                                    .and_then(parse_blocks);
+                            if let Some(b) = blocks {
+                                cache.insert(gs, b);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // Flatten the cache for the snapshot: resolved = every slot of a checked group,
+        // produced = the subset that has a block.
+        let (produced_slots, resolved_slots) = match (&production_cache, &leader_schedule) {
+            (Some((_, cache)), Some((_, _, slots))) => {
+                let mut produced: Vec<i64> = cache.values().flatten().copied().collect();
+                produced.sort_unstable();
+                let mut resolved: Vec<i64> = group_runs(slots)
+                    .into_iter()
+                    .filter(|(start, _)| cache.contains_key(start))
+                    .flat_map(|(start, end)| start..=end)
+                    .collect();
+                resolved.sort_unstable();
+                (Some(produced), Some(resolved))
+            }
+            _ => (None, None),
+        };
+
         let inputs = Inputs {
             log_lines: fetch::read_log_lines(log_file.as_deref(), SERVICE_NAME, 500),
             monitor_output: fetch::fetch_monitor(LEDGER_PATH, "agave-validator"),
@@ -207,6 +271,8 @@ fn run_daemon() -> ExitCode {
                 .flatten(),
             leader_epoch: leader_schedule.as_ref().map(|(_, disp, _)| *disp),
             leader_slots: leader_schedule.as_ref().map(|(_, _, s)| s.clone()),
+            produced_slots,
+            resolved_slots,
             // `solana block-production` table; snapshot filters to our identity's row.
             block_production_text: fetch::fetch_block_production(),
             // Runtime detection from the live process — never a stale config flag (issue #10).

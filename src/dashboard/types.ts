@@ -168,6 +168,10 @@ export interface LeaderProduction {
   epochEndSlot: number | null;
   currentSlot: number | null;
   leaderSlots: number[];
+  /** Past slots verified against the ledger: produced ⊆ resolved. A past slot in neither
+      is unknown (unchecked or purged) and must render as unknown, never as produced. */
+  producedSlots: number[];
+  resolvedSlots: number[];
   produced: number | null;
   skipped: number | null;
   skipRatePct: number | null;

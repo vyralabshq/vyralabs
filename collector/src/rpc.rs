@@ -70,6 +70,20 @@ pub fn parse_balance(json: &str) -> Option<f64> {
     v["result"]["value"].as_u64().map(|lamports| lamports as f64 / 1e9)
 }
 
+/// Map `getBlocks.result` -> the slots in the queried range that have a confirmed block.
+/// An error response or non-array result -> None (unknown, not "all skipped").
+pub fn parse_blocks(json: &str) -> Option<Vec<i64>> {
+    let v: Value = serde_json::from_str(json).ok()?;
+    v["result"].as_array().map(|a| a.iter().filter_map(|s| s.as_i64()).collect())
+}
+
+/// Map a bare-number `result` -> slot. Shared by `getSlot` (finalized tip gate) and
+/// `getFirstAvailableBlock` (purge floor: absence of a block below it proves nothing).
+pub fn parse_slot_number(json: &str) -> Option<i64> {
+    let v: Value = serde_json::from_str(json).ok()?;
+    v["result"].as_i64()
+}
+
 /// Map `getVersion.result` -> client version. `jito` is always None (see module note).
 pub fn parse_version(json: &str) -> Option<Version> {
     let v: Value = serde_json::from_str(json).ok()?;
