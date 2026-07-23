@@ -129,6 +129,11 @@ fn run_once(args: &[String]) -> ExitCode {
 /// Guarded fetches mean any single failure becomes a null field, never a crashed loop.
 fn run_daemon() -> ExitCode {
     let rpc_url = env_or("RPC_URL", "http://localhost:8899");
+    // Block-history RPC for per-slot production checks. The validator's own RPC is the
+    // minimal set (--private-rpc, no --full-rpc-api): getBlocks/getFirstAvailableBlock are
+    // "Method not found" there. Block existence is cluster truth, so the public endpoint is
+    // a fine source — ~12 range calls per cycle at worst while a fresh epoch backfills.
+    let blocks_rpc = env_or("BLOCKS_RPC_URL", "https://api.testnet.solana.com");
     let out_dir = PathBuf::from(env_or("OUT_DIR", "out"));
     let state_path = PathBuf::from(env_or("STATE_PATH", "state.json"));
     let log_file = std::env::var("LOG_FILE").ok();
@@ -192,16 +197,16 @@ fn run_daemon() -> ExitCode {
             }
         }
 
-        // Resolve past leader groups against the ledger, a few per cycle. Gated on the
-        // finalized tip (not processed): during a finality stall a produced block is not
-        // yet in finalized getBlocks, and caching it as skipped would be a permanent lie.
+        // Resolve past leader groups against cluster block history, a few per cycle. Gated
+        // on the finalized tip (not processed): during a finality stall a produced block is
+        // not yet in finalized getBlocks, and caching it as skipped would be a permanent lie.
         if let Some((_, disp, slots)) = leader_schedule.as_ref() {
             if production_cache.as_ref().is_none_or(|(e, _)| e != disp) {
                 production_cache = Some((*disp, std::collections::HashMap::new()));
             }
             let cache = &mut production_cache.as_mut().expect("just set").1;
             let finalized =
-                fetch::curl_rpc(&rpc_url, "getSlot", "[{\"commitment\":\"finalized\"}]")
+                fetch::curl_rpc(&blocks_rpc, "getSlot", "[{\"commitment\":\"finalized\"}]")
                     .as_deref()
                     .and_then(parse_slot_number);
             if let Some(tip) = finalized {
@@ -212,14 +217,14 @@ fn run_daemon() -> ExitCode {
                 if !unresolved.is_empty() {
                     // Purge floor: below getFirstAvailableBlock the ledger has no evidence
                     // either way, so those groups are skipped here and stay unknown.
-                    let floor = fetch::curl_rpc(&rpc_url, "getFirstAvailableBlock", "[]")
+                    let floor = fetch::curl_rpc(&blocks_rpc, "getFirstAvailableBlock", "[]")
                         .as_deref()
                         .and_then(parse_slot_number);
                     if let Some(floor) = floor {
                         for (gs, ge) in unresolved.into_iter().filter(|(s, _)| *s >= floor).take(12)
                         {
                             let blocks =
-                                fetch::curl_rpc(&rpc_url, "getBlocks", &format!("[{gs},{ge}]"))
+                                fetch::curl_rpc(&blocks_rpc, "getBlocks", &format!("[{gs},{ge}]"))
                                     .as_deref()
                                     .and_then(parse_blocks);
                             if let Some(b) = blocks {
