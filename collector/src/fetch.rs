@@ -103,6 +103,18 @@ pub fn fetch_block_production() -> Option<String> {
     run("solana", &["-ut", "block-production"])
 }
 
+/// Detect the validator client from the live process (issue #10): resolve the running
+/// `agave-validator` binary via /proc and ask it `--version`. Agave prints `client:Agave`,
+/// jito-solana prints `client:JitoLabs`. Returns None when the process/exe can't be read
+/// (validator down, non-Linux dev box) — jito shows null, never a stale guess.
+pub fn detect_jito_client() -> Option<bool> {
+    let pids = run("pgrep", &["-f", "agave-validator"])?;
+    let pid = pids.trim().lines().next()?.trim().to_string();
+    let exe = std::fs::read_link(format!("/proc/{pid}/exe")).ok()?;
+    let version = run(exe.to_str()?, &["--version"])?;
+    Some(version.contains("client:JitoLabs"))
+}
+
 /// Gather OS stats by running local commands / reading /proc. Each field independent;
 /// anything unavailable (e.g. on non-Linux dev) is simply None.
 pub fn gather_os_stats(ledger_path: &str, accounts_path: &str, service: &str) -> OsStatsInput {

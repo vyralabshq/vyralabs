@@ -10,9 +10,9 @@ pub const IDENTITY_PUBKEY: &str = "vyRa8J7ULHfUAdnkTHP3YGhcLWaLURXLmD7CiZkMzWg";
 pub const VOTE_PUBKEY: &str = "9LjQ5UC1gyebUySAbodzHJdLSkYAYgVeQcr2vv6FZP6E";
 pub const CLUSTER: &str = "testnet";
 
-// The node runs jito-solana (getVersion reports plain "solana-core: 4.1.1" with no jito
-// marker, so RPC can't detect it). This validator is jito, so the Jito pill is true.
-pub const IS_JITO_CLIENT: bool = true;
+// Jito detection is NOT a config flag: it went stale when the client switched (jito ->
+// agave) and the dashboard lied for 20h. It is detected at runtime from the live binary
+// (`fetch::detect_jito_client`), so it can never disagree with reality again.
 
 // Host paths for OS-stat gathering. Two separate NVMe drives on this box:
 // ledger dir lives on / (nvme0n1p2), accounts on its own disk (nvme1n1 -> /mnt/accounts).

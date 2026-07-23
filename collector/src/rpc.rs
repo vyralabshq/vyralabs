@@ -5,8 +5,8 @@
 //! the `result` field. Verified against real box output.
 //!
 //! Jito note: `getVersion` returns only `solana-core` + `feature-set` — there is no jito
-//! marker in RPC, so `Version.jito` is always None here. Real jito detection needs the
-//! service cmdline / config, wired in the I/O shell (#14).
+//! marker in RPC, so `Version.jito` is always None here. Real jito detection reads the
+//! running binary's `--version` (`fetch::detect_jito_client`, issue #10).
 
 use serde_json::Value;
 

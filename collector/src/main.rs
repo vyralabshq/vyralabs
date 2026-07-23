@@ -22,7 +22,7 @@ use std::time::{Duration, Instant};
 use chrono::Utc;
 
 use collector::config::{
-    ACCOUNTS_PATH, CLUSTER, IDENTITY_PUBKEY, IS_JITO_CLIENT, LEDGER_PATH, SERVICE_NAME, VOTE_PUBKEY,
+    ACCOUNTS_PATH, CLUSTER, IDENTITY_PUBKEY, LEDGER_PATH, SERVICE_NAME, VOTE_PUBKEY,
 };
 use collector::blockproduction::parse_leader_schedule;
 use collector::rpc::parse_epoch_info;
@@ -87,7 +87,7 @@ fn run_once(args: &[String]) -> ExitCode {
         rpc_epoch_info: read_file("--rpc-epoch"),
         rpc_version: read_file("--rpc-version"),
         rpc_balance: read_file("--rpc-balance"),
-        jito_client: Some(IS_JITO_CLIENT),
+        jito_client: fetch::detect_jito_client(),
         os_stats: Some(fetch::gather_os_stats(LEDGER_PATH, ACCOUNTS_PATH, SERVICE_NAME)),
         vote_account_json: read_file("--vote-account"),
         vote_accounts_json: read_file("--get-vote-accounts"),
@@ -211,7 +211,8 @@ fn run_daemon() -> ExitCode {
             leader_slots: leader_schedule.as_ref().map(|(_, _, s)| s.clone()),
             // `solana block-production` table; snapshot filters to our identity's row.
             block_production_text: fetch::fetch_block_production(),
-            jito_client: Some(IS_JITO_CLIENT),
+            // Runtime detection from the live process — never a stale config flag (issue #10).
+            jito_client: fetch::detect_jito_client(),
             identity_pubkey: Some(IDENTITY_PUBKEY.to_string()),
             vote_pubkey: Some(VOTE_PUBKEY.to_string()),
             cluster: CLUSTER.to_string(),

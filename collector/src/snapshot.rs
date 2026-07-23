@@ -69,7 +69,8 @@ pub struct Inputs {
     pub rpc_version: Option<String>,
     /// Raw localhost `getBalance` for the identity (issue #10).
     pub rpc_balance: Option<String>,
-    /// Whether the node runs jito-solana (getVersion can't tell); from config.
+    /// Whether the node runs jito-solana (getVersion can't tell); detected at runtime
+    /// from the live validator binary's `--version` (`fetch::detect_jito_client`).
     pub jito_client: Option<bool>,
     /// Captured OS-stat command outputs (issue #11, Source D).
     pub os_stats: Option<OsStatsInput>,
@@ -235,7 +236,7 @@ pub fn build_snapshot(
         None => errors.push("getEpochInfo: not available".to_string()),
     }
     match inputs.rpc_version.as_deref().map(parse_version) {
-        // getVersion has no jito marker; the flag comes from config (issue #10).
+        // getVersion has no jito marker; the flag is detected from the live process (issue #10).
         Some(Some(v)) => latest.version = Some(Version { jito: inputs.jito_client, ..v }),
         Some(None) => errors.push("getVersion: unparseable".to_string()),
         None => errors.push("getVersion: not available".to_string()),
