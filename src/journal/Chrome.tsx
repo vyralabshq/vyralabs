@@ -68,7 +68,7 @@ export function Chrome({
       <main className={`${container} flex-1`}>{children}</main>
 
       <footer
-        className={`${container} mt-20 shrink-0 border-t border-accent/10 pt-10 pb-16`}
+        className={`${container} mt-20 shrink-0 border-t border-cream/10 pt-10 pb-16`}
       >
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <a

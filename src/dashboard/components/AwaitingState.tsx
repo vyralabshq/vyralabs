@@ -56,7 +56,7 @@ export function AwaitingState() {
           </div>
         </div>
 
-        <footer className="mt-16 border-t border-accent/10 pt-8">
+        <footer className="mt-16 border-t border-cream/10 pt-8">
           <Disclaimer />
         </footer>
       </main>

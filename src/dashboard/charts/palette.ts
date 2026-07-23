@@ -4,17 +4,17 @@
 
 // Mirrors the tokens in src/index.css (ECharts can't read CSS vars). Keep in sync.
 export const CHART = {
-  ink: "#fdf3e8",
-  inkSecondary: "#b89274",
-  inkMuted: "#6e503a",
-  accent: "#f77f1b",
-  accentBright: "#ffa033",
+  ink: "#f3e6d4",
+  inkSecondary: "#d4bc9c",
+  inkMuted: "#6f5640",
+  accent: "#e87820",
+  accentBright: "#f59a3d",
   ok: "#6bbf7e",
   down: "#e0705f",
-  grid: "rgba(184,146,116,0.10)",
-  axis: "rgba(184,146,116,0.25)",
-  surface: "#140d07",
-  elevated: "#1c1209",
+  grid: "rgba(243,230,212,0.08)",
+  axis: "rgba(243,230,212,0.18)",
+  surface: "#15110c",
+  elevated: "#1f1912",
 } as const;
 
 export const prefersReducedMotion = () =>

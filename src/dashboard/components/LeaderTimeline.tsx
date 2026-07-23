@@ -85,7 +85,7 @@ export function LeaderTimeline({
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-accent/10 pt-3 font-mono text-[10px] text-ink-tertiary">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-cream/10 pt-3 font-mono text-[10px] text-ink-tertiary">
         <span className="tabular-nums">{groups.length} groups</span>
         {LEGEND.map((l) => (
           <span key={l.state} className="inline-flex items-center gap-1.5">

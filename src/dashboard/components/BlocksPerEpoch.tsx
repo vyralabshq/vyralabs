@@ -41,7 +41,7 @@ export function BlocksPerEpoch({
         <div className="mt-6 flex flex-1 flex-col">
           {/* Plot fills the panel; bars are full-height cells so they scale to the whole
               area, not a fixed stub. The dashed line marks the 5% watch threshold. */}
-          <div className="relative flex flex-1 items-end justify-center gap-4 border-b border-accent/10">
+          <div className="relative flex flex-1 items-end justify-center gap-4 border-b border-cream/10">
             <div
               className="pointer-events-none absolute inset-x-0 border-t border-dashed border-accent/15"
               style={{ bottom: `${(GUIDE / AXIS_MAX) * 100}%` }}

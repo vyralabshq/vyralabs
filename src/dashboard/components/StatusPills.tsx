@@ -18,7 +18,7 @@ function Pill({ label, state }: { label: string; state: PillState }) {
 
   return (
     <span
-      className="inline-flex items-center gap-2.5 rounded-full border border-accent/15 bg-surface px-3.5 py-1.5"
+      className="inline-flex items-center gap-2.5 rounded-full border border-cream/12 bg-surface px-3.5 py-1.5"
       role="status"
       aria-label={`${label}: ${up ? "up" : (word ?? "up")}`}
     >
@@ -66,7 +66,7 @@ export function StatusPills({
       <Pill label="Process active" state={processActive} />
       {clientText && (
         <span
-          className="inline-flex items-center gap-2 rounded-full border border-accent/15 bg-surface px-3.5 py-1.5 font-mono text-[12px] tabular-nums text-ink-secondary"
+          className="inline-flex items-center gap-2 rounded-full border border-cream/12 bg-surface px-3.5 py-1.5 font-mono text-[12px] tabular-nums text-ink-secondary"
           role="status"
           aria-label={`client: ${clientText}`}
         >

@@ -44,7 +44,7 @@ export function EventFeed({ events, now }: { events: EventItem[]; now: Date }) {
       return t !== null && (max === null || t > max) ? t : max;
     }, null);
     return (
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl border border-accent/10 bg-surface/40 px-4 py-2.5 font-mono text-[12px]">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl border border-cream/10 bg-surface/40 px-4 py-2.5 font-mono text-[12px]">
         <span className="flex items-center gap-2 text-ink-secondary">
           <span className="h-2 w-2 rounded-full bg-ok" aria-hidden="true" />
           no events in the last hour

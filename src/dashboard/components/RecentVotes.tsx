@@ -120,7 +120,7 @@ export function RecentVotes({
           </div>
 
           {/* Bar plot: fills the card's height; bars sit on a baseline, tallest = latest. */}
-          <div className="mt-4 flex min-h-[120px] flex-1 items-end gap-[3px] border-b border-accent/12 pb-px">
+          <div className="mt-4 flex min-h-[120px] flex-1 items-end gap-[3px] border-b border-cream/10 pb-px">
             {cells.map((c) => (
               <div
                 key={c.slot}

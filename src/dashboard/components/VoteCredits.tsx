@@ -155,7 +155,7 @@ export function VoteCredits({
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-accent/10 pt-3">
+      <div className="flex flex-col gap-3 border-t border-cream/10 pt-3">
         <span className="font-mono text-[10px] tracking-[0.12em] text-ink-tertiary">
           CREDITS PER EPOCH
         </span>
@@ -177,7 +177,7 @@ export function VoteCredits({
                   left padding is the axis gutter the labels sit in. */}
               <div className="pointer-events-none absolute inset-x-0 top-0 flex h-28 flex-col justify-between">
                 {[100, 75, 50, 25].map((v) => (
-                  <div key={v} className="relative border-t border-accent/10">
+                  <div key={v} className="relative border-t border-cream/10">
                     <span className="absolute -top-1.5 left-0 font-mono text-[8px] text-ink-tertiary">
                       {v}
                     </span>

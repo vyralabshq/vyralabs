@@ -50,7 +50,7 @@ export function PubkeyChip({ label, value }: { label: string; value: string | nu
       disabled={value === null}
       aria-label={value ? `Copy ${label} key ${value}` : `${label} key unavailable`}
       title={value ?? undefined}
-      className="group inline-flex items-center gap-2 rounded-md border border-accent/15 bg-surface px-2.5 py-1.5 font-mono text-xs text-ink-secondary transition-colors hover:border-accent/40 hover:text-ink disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+      className="group inline-flex items-center gap-2 rounded-md border border-cream/12 bg-surface px-2.5 py-1.5 font-mono text-xs text-ink-secondary transition-colors hover:border-accent/40 hover:text-ink disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
     >
       <span className="text-ink-tertiary">{label}</span>
       <span>{value ? shorten(value) : "not available"}</span>

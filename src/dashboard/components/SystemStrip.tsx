@@ -75,7 +75,7 @@ export function SystemStrip({
     <div className="flex flex-col gap-2.5 panel p-4 sm:p-5">
       {/* Snapshot lag as a compact header row instead of two big number cards: it's two
           numbers, so it earns one dense line, not half the section's height. */}
-      <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 border-b border-accent/10 pb-3 font-mono text-[11px] text-ink-tertiary">
+      <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 border-b border-cream/10 pb-3 font-mono text-[11px] text-ink-tertiary">
         <span>
           incr snapshot{" "}
           <span className="tabular-nums text-ink-secondary">
@@ -94,7 +94,7 @@ export function SystemStrip({
       <Bar label="ledger disk" pct={ledgerPct} warnAt={80} dangerAt={92} />
       <Bar label="accounts disk" pct={accountsPct} warnAt={80} dangerAt={92} />
       <Bar label="memory" pct={memoryPct} warnAt={85} dangerAt={95} />
-      <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-accent/10 pt-3 font-mono text-[11px] text-ink-tertiary">
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-cream/10 pt-3 font-mono text-[11px] text-ink-tertiary">
         <span>
           load{" "}
           {loadAvg === null ? (

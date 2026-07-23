@@ -1,50 +1,50 @@
 @import "tailwindcss";
 
 @theme {
-  /* Backgrounds (warm near-black) */
-  --color-bg: #0c0805;
-  --color-surface: #140d07;
-  --color-elevated: #1c1209;
+  /* Brand pair from the mark: orange chevron on cream plinth, over a warm dark field.
+     Orange = primary (action, live, emphasis). Cream = secondary (type, soft surfaces,
+     borders). Background stays deep so the pair reads like the logo on dark chrome. */
+  --color-bg: #0a0806;
+  --color-surface: #15110c;
+  --color-elevated: #1f1912;
 
-  /* Accent (sun orange) */
-  --color-accent: #f77f1b;
-  --color-accent-bright: #ffa033;
+  /* Primary — logo orange */
+  --color-accent: #e87820;
+  --color-accent-bright: #f59a3d;
 
-  /* Status tones (dashboard only): warm-muted so they sit inside the palette */
+  /* Secondary — logo cream (plinth). Used as ink, soft fills, and quiet borders. */
+  --color-cream: #f3e6d4;
+  --color-cream-soft: #e4d2b8;
+  --color-cream-dim: #c4a88a;
+
+  /* Status (dashboard): muted so they sit inside the warm field */
   --color-ok: #6bbf7e;
   --color-down: #e0705f;
 
-  /* Text — four levels. Three was too flat: `ink-secondary` had to serve as both supporting
-     copy and metadata, so the two collapsed together and the page read as one muted tone
-     with occasional highlights. `ink-tertiary` gives metadata its own step and lets
-     `ink-secondary` go back to being genuinely secondary. Same warm hue throughout, only
-     lightness moves. */
-  --color-ink: #fdf3e8;
-  --color-ink-secondary: #cbab8e;
-  --color-ink-tertiary: #97764f;
-  --color-ink-muted: #6e503a;
+  /* Text ladder on cream hue — only lightness moves */
+  --color-ink: #f3e6d4;
+  --color-ink-secondary: #d4bc9c;
+  --color-ink-tertiary: #a88b6a;
+  --color-ink-muted: #6f5640;
 
-  /* Fonts. Syne is a display face — headlines and site chrome only. Long-form reading
-     gets IBM Plex Sans (`--font-text`): humanist, built for body copy, and it pairs with
-     JetBrains Mono. Setting Syne as the body font was why the journal felt off to read. */
+  /* Fonts. Syne = display/chrome. IBM Plex Sans = body reading. JetBrains Mono = meta. */
   --font-display: "Syne", system-ui, sans-serif;
   --font-sans: "Syne", system-ui, sans-serif;
   --font-text: "IBM Plex Sans", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
 
-  /* Pulse-dot animation */
   --animate-pulse-dot: pulse-dot 2s infinite;
 }
 
 @keyframes pulse-dot {
   0% {
-    box-shadow: 0 0 0 0 rgba(247, 127, 27, 0.5);
+    box-shadow: 0 0 0 0 rgba(232, 120, 32, 0.5);
   }
   70% {
-    box-shadow: 0 0 0 8px rgba(247, 127, 27, 0);
+    box-shadow: 0 0 0 8px rgba(232, 120, 32, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(247, 127, 27, 0);
+    box-shadow: 0 0 0 0 rgba(232, 120, 32, 0);
   }
 }
 
@@ -60,22 +60,14 @@
    this is a refactor with no visual change. Utilities still layer on top: `hover:` variants
    carry a pseudo-class so they outrank this and keep working. */
 @utility panel {
-  /* 14px, not 12: the panel pads by 8 (p-2 strips) to 16 (p-4 cards), and children sit at
-     6-8px radius. outer = inner + padding keeps nested corners concentric instead of the
-     child's curve fighting the parent's. */
+  /* Cream-tinted edge + warm surface — logo secondary as structure, orange for accents only. */
   border-radius: 14px;
-  border: 1px solid color-mix(in oklab, var(--color-accent) 12%, transparent);
-  background-color: color-mix(in oklab, var(--color-surface) 60%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-cream) 10%, transparent);
+  background-color: color-mix(in oklab, var(--color-surface) 72%, transparent);
 }
 
-/* Container guide lines: 1px rules down both edges of the content column, plus small
-   squares at its corners — the page showing its own measurements, like a technical drawing.
-   Applied to the element that already IS the container, so the rules sit at left/right 0 and
-   can never drift from the real column edge (no viewport math to keep in sync with the
-   max-width). Warm-tinted to the palette; the usual neutral grey reads as a rendering bug on
-   this background. Behind content but above the page backdrops via isolation, never
-   interactive. Hidden below sm: on a phone the column is the viewport and the lines would
-   just be two stripes hugging the screen edge. */
+/* Quiet side rails for the hero only. Cream (not orange) so they measure the column
+   without competing with CTAs. Short height + soft fade; hidden on small screens. */
 @utility container-lines {
   position: relative;
   isolation: isolate;
@@ -84,20 +76,17 @@
   &::after {
     content: "";
     position: absolute;
-    top: 0;
-    bottom: 0;
+    top: 8%;
+    bottom: 18%;
     z-index: -1;
     width: 1px;
-    background: color-mix(in oklab, var(--color-accent) 16%, transparent);
+    background: color-mix(in oklab, var(--color-cream) 14%, transparent);
     pointer-events: none;
-    /* Fade both ends. Without this the rules butt-end under the header and again above the
-       footer, which reads as a div that stopped rather than a drawn guide. They should
-       emerge from the page and dissolve back into it. */
     mask-image: linear-gradient(
       to bottom,
       transparent 0,
-      black 140px,
-      black calc(100% - 140px),
+      black 12%,
+      black 88%,
       transparent 100%
     );
   }
@@ -125,10 +114,10 @@
   z-index: 0;
   pointer-events: none;
   background-image: radial-gradient(
-    rgba(247, 127, 27, 0.12) 1.2px,
+    rgba(232, 120, 32, 0.09) 1.2px,
     transparent 1.5px
   );
-  background-size: 45px 45px;
+  background-size: 48px 48px;
   -webkit-mask-image: radial-gradient(
     ellipse 80% 70% at 50% 38%,
     transparent 12%,
@@ -154,9 +143,9 @@
   pointer-events: none;
   background: radial-gradient(
     50% 50% at 50% 50%,
-    rgba(247, 127, 27, 0.16) 0%,
-    rgba(247, 127, 27, 0.05) 38%,
-    transparent 70%
+    rgba(232, 120, 32, 0.14) 0%,
+    rgba(243, 230, 212, 0.03) 42%,
+    transparent 72%
   );
 }
 
