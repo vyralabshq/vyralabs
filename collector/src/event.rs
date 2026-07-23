@@ -21,10 +21,7 @@ const MAX_MSG_CHARS: usize = 200;
 fn split_prefix(line: &str) -> (Option<String>, &str) {
     if let (Some(open), Some(close)) = (line.find('['), line.find(']')) {
         if open < close {
-            let ts = line[open + 1..close]
-                .split_whitespace()
-                .next()
-                .map(str::to_string);
+            let ts = line[open + 1..close].split_whitespace().next().map(str::to_string);
             return (ts, line[close + 1..].trim_start());
         }
     }
@@ -56,11 +53,7 @@ pub fn build_events(lines: &[String], redactor: &Redactor) -> Vec<Event> {
             let level = level_of(line).map(str::to_string);
             let (ts, raw_msg) = split_prefix(line);
             let msg: String = redactor.redact(raw_msg).chars().take(MAX_MSG_CHARS).collect();
-            Event {
-                ts,
-                level,
-                msg: Some(msg),
-            }
+            Event { ts, level, msg: Some(msg) }
         })
         .collect()
 }
@@ -119,9 +112,7 @@ mod tests {
 
     #[test]
     fn keeps_only_last_ten() {
-        let input: Vec<String> = (0..15)
-            .map(|i| format!("[t WARN  m] event {i}"))
-            .collect();
+        let input: Vec<String> = (0..15).map(|i| format!("[t WARN  m] event {i}")).collect();
         let evs = build_events(&input, &redactor());
         assert_eq!(evs.len(), 10);
         assert_eq!(evs[0].msg.as_deref(), Some("event 5"));

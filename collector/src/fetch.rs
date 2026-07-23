@@ -16,9 +16,7 @@ use crate::osstats::OsStatsInput;
 /// Run a command, returning stdout on success (exit 0), else None.
 fn run(cmd: &str, args: &[&str]) -> Option<String> {
     let out = Command::new(cmd).args(args).output().ok()?;
-    out.status
-        .success()
-        .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
+    out.status.success().then(|| String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
 /// A localhost JSON-RPC call via `curl` (already on the box; keeps the collector crate-free).

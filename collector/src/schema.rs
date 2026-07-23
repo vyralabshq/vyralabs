@@ -42,11 +42,7 @@ pub struct Disk {
 
 impl Disk {
     pub fn empty() -> Self {
-        Disk {
-            pct: None,
-            used_gb: None,
-            total_gb: None,
-        }
+        Disk { pct: None, used_gb: None, total_gb: None }
     }
 }
 
@@ -221,14 +217,8 @@ pub fn empty_latest(
             absolute_slot: None,
             block_height: None,
         },
-        vote: Vote {
-            latest: None,
-            root: None,
-        },
-        block_production: BlockProduction {
-            produced: None,
-            dropped: None,
-        },
+        vote: Vote { latest: None, root: None },
+        block_production: BlockProduction { produced: None, dropped: None },
         leader_production: LeaderProduction::empty(),
         fork_weight: None,
         system: System {

@@ -21,20 +21,17 @@ use std::time::{Duration, Instant};
 
 use chrono::Utc;
 
+use collector::blockproduction::parse_leader_schedule;
 use collector::config::{
     ACCOUNTS_PATH, CLUSTER, IDENTITY_PUBKEY, LEDGER_PATH, SERVICE_NAME, VOTE_PUBKEY,
 };
-use collector::blockproduction::parse_leader_schedule;
 use collector::rpc::parse_epoch_info;
 use collector::state::{load_state, save_state};
 use collector::{build_snapshot, fetch, Inputs, SnapshotResult};
 
 /// Value following `flag` in the args, if present (`--flag value`).
 fn flag_value(args: &[String], flag: &str) -> Option<String> {
-    args.iter()
-        .position(|a| a == flag)
-        .and_then(|i| args.get(i + 1))
-        .cloned()
+    args.iter().position(|a| a == flag).and_then(|i| args.get(i + 1)).cloned()
 }
 
 fn env_or(key: &str, default: &str) -> String {
@@ -163,10 +160,7 @@ fn run_daemon() -> ExitCode {
         // and reuse it. On an epoch rollover (or first run) refetch the schedule and reparse
         // to our slots; otherwise keep the cached Vec.
         let rpc_epoch_info = fetch::curl_rpc(&rpc_url, "getEpochInfo", "[]");
-        if let Some(ep) = rpc_epoch_info
-            .as_deref()
-            .and_then(parse_epoch_info)
-            .and_then(|e| e.epoch)
+        if let Some(ep) = rpc_epoch_info.as_deref().and_then(parse_epoch_info).and_then(|e| e.epoch)
         {
             // Re-resolve the schedule when the chain epoch changes. Prefer this epoch; if it
             // has none of our slots, look one epoch ahead so the countdown to our first ones
@@ -195,7 +189,11 @@ fn run_daemon() -> ExitCode {
             rpc_health: fetch::curl_rpc(&rpc_url, "getHealth", "[]"),
             rpc_epoch_info,
             rpc_version: fetch::curl_rpc(&rpc_url, "getVersion", "[]"),
-            rpc_balance: fetch::curl_rpc(&rpc_url, "getBalance", &format!("[\"{IDENTITY_PUBKEY}\"]")),
+            rpc_balance: fetch::curl_rpc(
+                &rpc_url,
+                "getBalance",
+                &format!("[\"{IDENTITY_PUBKEY}\"]"),
+            ),
             os_stats: Some(fetch::gather_os_stats(LEDGER_PATH, ACCOUNTS_PATH, SERVICE_NAME)),
             vote_account_json: do_vote.then(|| fetch::fetch_vote_account(VOTE_PUBKEY)).flatten(),
             vote_accounts_json: do_vote

@@ -74,9 +74,7 @@ impl Redactor {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        Redactor {
-            whitelist: whitelist.into_iter().map(Into::into).collect(),
-        }
+        Redactor { whitelist: whitelist.into_iter().map(Into::into).collect() }
     }
 
     /// True if the whole line should be dropped rather than redacted: it names a home
@@ -125,10 +123,7 @@ mod tests {
         assert_eq!(r.redact("read /mnt/ledger/x failed"), "read [redacted] failed");
         assert_eq!(r.redact("bind 192.168.1.5"), "bind [redacted]");
         assert_eq!(r.redact("peer 10.0.0.1:8001 up"), "peer [redacted] up");
-        assert_eq!(
-            r.redact("GET https://api.testnet.solana.com/x now"),
-            "GET [redacted] now"
-        );
+        assert_eq!(r.redact("GET https://api.testnet.solana.com/x now"), "GET [redacted] now");
     }
 
     #[test]

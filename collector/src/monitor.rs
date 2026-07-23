@@ -25,11 +25,7 @@ pub struct MonitorSlots {
 fn field(line: &str, label: &str) -> Option<i64> {
     let idx = line.find(label)?;
     let rest = &line[idx + label.len()..];
-    let digits: String = rest
-        .trim_start()
-        .chars()
-        .take_while(|c| c.is_ascii_digit())
-        .collect();
+    let digits: String = rest.trim_start().chars().take_while(|c| c.is_ascii_digit()).collect();
     digits.parse().ok()
 }
 
@@ -39,10 +35,7 @@ fn field(line: &str, label: &str) -> Option<i64> {
 /// capture reflects the freshest refresh. The longer labels ("Full Snapshot Slot:",
 /// "Incremental Snapshot Slot:") are matched in full so they don't collide.
 pub fn parse_monitor(output: &str) -> Option<MonitorSlots> {
-    let line = output
-        .lines()
-        .rev()
-        .find(|l| l.contains("Processed Slot:"))?;
+    let line = output.lines().rev().find(|l| l.contains("Processed Slot:"))?;
     Some(MonitorSlots {
         processed: field(line, "Processed Slot:"),
         confirmed: field(line, "Confirmed Slot:"),
@@ -82,7 +75,8 @@ Genesis Hash: 4uhcVJyU9pJkvQyS88uRDiswHXSCkY3zQawwpjk2NsNY\n\
     fn snapshot_labels_do_not_collide() {
         // "Full Snapshot Slot:" and "Incremental Snapshot Slot:" both contain
         // "Snapshot Slot:"; full-label matching keeps them distinct.
-        let line = "x | Processed Slot: 1 | Full Snapshot Slot: 22 | Incremental Snapshot Slot: 333";
+        let line =
+            "x | Processed Slot: 1 | Full Snapshot Slot: 22 | Incremental Snapshot Slot: 333";
         let s = parse_monitor(line).unwrap();
         assert_eq!(s.full_snapshot, Some(22));
         assert_eq!(s.incremental_snapshot, Some(333));

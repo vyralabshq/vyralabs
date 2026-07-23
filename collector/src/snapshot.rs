@@ -13,15 +13,17 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use serde_json::{Map, Value as Json};
 
+use crate::blockproduction::{next_leader_slot, parse_block_production, skip_rate_pct};
+use crate::config;
 use crate::datapoints::{latest_datapoint, Value};
 use crate::derive::{drop_rate_pct, vote_lag};
 use crate::event::build_events;
 use crate::monitor::parse_monitor;
 use crate::osstats::{parse_os_stats, OsStatsInput};
 use crate::redact::Redactor;
-use crate::rpc::{parse_activated_stake, parse_balance, parse_epoch_info, parse_health, parse_version};
-use crate::blockproduction::{next_leader_slot, parse_block_production, skip_rate_pct};
-use crate::config;
+use crate::rpc::{
+    parse_activated_stake, parse_balance, parse_epoch_info, parse_health, parse_version,
+};
 use crate::schema::{
     empty_history, empty_latest, EpochSkip, History, HistoryPoint, Latest, LeaderProduction,
     Version, VoteAccount,
@@ -44,9 +46,7 @@ const VOTE_STALE_AFTER_S: i64 = 11 * 60;
 
 /// Parse an `iso_z`-formatted timestamp (as written to `fetched_at`), else None.
 fn parse_iso_z(s: &str) -> Option<DateTime<Utc>> {
-    chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%SZ")
-        .ok()
-        .map(|n| n.and_utc())
+    chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%SZ").ok().map(|n| n.and_utc())
 }
 
 /// Load a persisted point series from `prev_state`; missing or malformed -> empty.
@@ -95,10 +95,7 @@ pub struct Inputs {
 impl Inputs {
     /// `cluster` defaults to "testnet", matching the Python dataclass default.
     pub fn new() -> Self {
-        Inputs {
-            cluster: "testnet".to_string(),
-            ..Default::default()
-        }
+        Inputs { cluster: "testnet".to_string(), ..Default::default() }
     }
 }
 
@@ -121,11 +118,7 @@ pub fn build_snapshot(
     prev_state: Option<&Map<String, Json>>,
 ) -> SnapshotResult {
     let generated_at = iso_z(now);
-    let cluster = if inputs.cluster.is_empty() {
-        "testnet"
-    } else {
-        inputs.cluster.as_str()
-    };
+    let cluster = if inputs.cluster.is_empty() { "testnet" } else { inputs.cluster.as_str() };
     let mut latest = empty_latest(
         &generated_at,
         inputs.identity_pubkey.clone(),
@@ -147,10 +140,7 @@ pub fn build_snapshot(
     // pubkeys are the whitelist, everything else that looks sensitive is scrubbed. Used for
     // both the event feed and the shipped errors[].
     let redactor = Redactor::new(
-        [&inputs.identity_pubkey, &inputs.vote_pubkey]
-            .into_iter()
-            .flatten()
-            .cloned(),
+        [&inputs.identity_pubkey, &inputs.vote_pubkey].into_iter().flatten().cloned(),
     );
 
     // Redacted event feed from the same log lines (issue #12).
@@ -172,9 +162,8 @@ pub fn build_snapshot(
 
     if let Some(blocks) = require("blocks_produced") {
         latest.block_production.produced = blocks.get("num_blocks_on_fork").and_then(Value::as_int);
-        latest.block_production.dropped = blocks
-            .get("num_dropped_blocks_on_fork")
-            .and_then(Value::as_int);
+        latest.block_production.dropped =
+            blocks.get("num_dropped_blocks_on_fork").and_then(Value::as_int);
     }
 
     if let Some(bank_weight) = require("bank_weight") {
@@ -183,9 +172,8 @@ pub fn build_snapshot(
 
     if let Some(commitment) = require("block-commitment-cache") {
         latest.slots.confirmed = commitment.get("highest-confirmed-slot").and_then(Value::as_int);
-        latest.slots.finalized = commitment
-            .get("highest-super-majority-root")
-            .and_then(Value::as_int);
+        latest.slots.finalized =
+            commitment.get("highest-super-majority-root").and_then(Value::as_int);
     }
 
     if let Some(heights) = require("bank-new_from_parent-heights") {
@@ -193,10 +181,8 @@ pub fn build_snapshot(
     }
 
     let replay = require("replay-slot-stats");
-    let tx_per_slot = replay
-        .as_ref()
-        .and_then(|r| r.get("total_transactions"))
-        .and_then(Value::as_int);
+    let tx_per_slot =
+        replay.as_ref().and_then(|r| r.get("total_transactions")).and_then(Value::as_int);
 
     // Monitor is the authoritative source for the five slot numbers (issue #10). It
     // overrides the log-datapoint values above; where the monitor omits a field, the
@@ -241,6 +227,13 @@ pub fn build_snapshot(
         Some(None) => errors.push("getVersion: unparseable".to_string()),
         None => errors.push("getVersion: not available".to_string()),
     }
+    // Jito detection is independent of RPC — surface the client flavor even when getVersion
+    // is down (--private-rpc restarts), so the dashboard never falls back to a stale string.
+    if latest.version.is_none() {
+        if let Some(jito) = inputs.jito_client {
+            latest.version = Some(Version { version: None, jito: Some(jito) });
+        }
+    }
     match inputs.rpc_balance.as_deref().map(parse_balance) {
         Some(Some(sol)) => latest.identity_balance_sol = Some(sol),
         Some(None) => errors.push("getBalance: unparseable".to_string()),
@@ -267,10 +260,7 @@ pub fn build_snapshot(
     match inputs.vote_account_json.as_deref().map(parse_vote_account) {
         Some(Some(d)) => {
             // Activated stake comes from getVoteAccounts (the CLI omits it); rest from the CLI.
-            let activated = inputs
-                .vote_accounts_json
-                .as_deref()
-                .and_then(parse_activated_stake);
+            let activated = inputs.vote_accounts_json.as_deref().and_then(parse_activated_stake);
             latest.vote_account = VoteAccount {
                 stale: false,
                 fetched_at: Some(generated_at.clone()),
@@ -306,13 +296,12 @@ pub fn build_snapshot(
     // (no leader_slots) until a schedule has been fetched — the frontend then shows its
     // awaiting state rather than fake zeros.
     {
-        let identity = inputs
-            .identity_pubkey
-            .as_deref()
-            .unwrap_or(config::IDENTITY_PUBKEY);
+        let identity = inputs.identity_pubkey.as_deref().unwrap_or(config::IDENTITY_PUBKEY);
         let current = latest.epoch.absolute_slot.or(latest.slots.processed);
         let schedule = inputs.leader_slots.clone().unwrap_or_default();
-        let counts = inputs.block_production_text.as_deref()
+        let counts = inputs
+            .block_production_text
+            .as_deref()
             .and_then(|j| parse_block_production(j, identity))
             .unwrap_or_default();
         let skip = skip_rate_pct(&counts);
@@ -323,18 +312,16 @@ pub fn build_snapshot(
         let cur_epoch = latest.epoch.epoch;
         let disp_epoch = inputs.leader_epoch.or(cur_epoch);
         let slots_in_epoch = latest.epoch.slots_in_epoch;
-        let cur_start = latest
-            .epoch
-            .absolute_slot
-            .zip(latest.epoch.slot_index)
-            .map(|(abs, idx)| abs - idx);
-        let (epoch_start_slot, epoch_end_slot) = match (cur_start, slots_in_epoch, cur_epoch, disp_epoch) {
-            (Some(cs), Some(len), Some(ce), Some(de)) => {
-                let start = cs + (de - ce) * len;
-                (Some(start), Some(start + len))
-            }
-            _ => (None, None),
-        };
+        let cur_start =
+            latest.epoch.absolute_slot.zip(latest.epoch.slot_index).map(|(abs, idx)| abs - idx);
+        let (epoch_start_slot, epoch_end_slot) =
+            match (cur_start, slots_in_epoch, cur_epoch, disp_epoch) {
+                (Some(cs), Some(len), Some(ce), Some(de)) => {
+                    let start = cs + (de - ce) * len;
+                    (Some(start), Some(start + len))
+                }
+                _ => (None, None),
+            };
 
         // Skip history: carry the prior array forward and upsert the display epoch's current
         // rate, so each closed epoch keeps its last value and the current one updates live.
@@ -388,21 +375,11 @@ pub fn build_snapshot(
     // Roll each window forward from its persisted series (issue #13): append at cadence,
     // trim to retention. State carries the full series between cycles.
     let mut history_1h = empty_history("1h", H1_RESOLUTION_S, &generated_at);
-    history_1h.points = roll(
-        read_points(prev_state, STATE_H1),
-        point.clone(),
-        now,
-        H1_RESOLUTION_S,
-        H1_WINDOW_S,
-    );
+    history_1h.points =
+        roll(read_points(prev_state, STATE_H1), point.clone(), now, H1_RESOLUTION_S, H1_WINDOW_S);
     let mut history_24h = empty_history("24h", H24_RESOLUTION_S, &generated_at);
-    history_24h.points = roll(
-        read_points(prev_state, STATE_H24),
-        point,
-        now,
-        H24_RESOLUTION_S,
-        H24_WINDOW_S,
-    );
+    history_24h.points =
+        roll(read_points(prev_state, STATE_H24), point, now, H24_RESOLUTION_S, H24_WINDOW_S);
 
     // Collector-generated errors carry no secrets today, but I/O sources (#10, #11) will
     // surface paths and peer addresses, so errors[] pass through the same redactor (#12).
@@ -412,27 +389,12 @@ pub fn build_snapshot(
 
     // Persist the rolled windows so the next cycle continues the same series (issue #13).
     let mut new_state = prev_state.cloned().unwrap_or_default();
-    new_state.insert(
-        STATE_H1.into(),
-        serde_json::to_value(&history_1h.points).unwrap(),
-    );
-    new_state.insert(
-        STATE_H24.into(),
-        serde_json::to_value(&history_24h.points).unwrap(),
-    );
+    new_state.insert(STATE_H1.into(), serde_json::to_value(&history_1h.points).unwrap());
+    new_state.insert(STATE_H24.into(), serde_json::to_value(&history_24h.points).unwrap());
     // Keep the vote account so a cycle with no fresh fetch can carry it forward (#11).
-    new_state.insert(
-        "vote_account".into(),
-        serde_json::to_value(&latest.vote_account).unwrap(),
-    );
+    new_state.insert("vote_account".into(), serde_json::to_value(&latest.vote_account).unwrap());
 
-    SnapshotResult {
-        latest,
-        history_1h,
-        history_24h,
-        new_state,
-        errors,
-    }
+    SnapshotResult { latest, history_1h, history_24h, new_state, errors }
 }
 
 #[cfg(test)]
@@ -540,10 +502,7 @@ Incremental Snapshot Slot: 420608053"
     fn vote_account_carries_forward_fresh_then_stale_when_old() {
         let json = r#"{"credits":2218603,"commission":100,
             "epochVotingHistory":[{"epoch":986,"slotsInEpoch":432000,"creditsEarned":978616,"maxCreditsPerSlot":16}]}"#;
-        let fresh = Inputs {
-            vote_account_json: Some(json.to_string()),
-            ..Inputs::new()
-        };
+        let fresh = Inputs { vote_account_json: Some(json.to_string()), ..Inputs::new() };
         let t0: DateTime<Utc> = "2026-07-08T00:00:00Z".parse().unwrap();
         let c0 = build_snapshot(&fresh, t0, None);
         assert!(!c0.latest.vote_account.stale);
@@ -583,11 +542,7 @@ Incremental Snapshot Slot: 420608053"
         // A point older than the 1h retention span is trimmed on a later cycle.
         let t3: DateTime<Utc> = "2026-07-08T01:00:11Z".parse().unwrap();
         let c3 = build_snapshot(&inputs, t3, Some(&c2.new_state));
-        assert!(c3
-            .history_1h
-            .points
-            .iter()
-            .all(|p| p.t != "2026-07-08T00:00:00Z"));
+        assert!(c3.history_1h.points.iter().all(|p| p.t != "2026-07-08T00:00:00Z"));
     }
 
     #[test]
@@ -615,9 +570,7 @@ Incremental Snapshot Slot: 420608053"
         assert_eq!(p.tx_per_slot, Some(1234));
         assert_eq!(p.drop_rate_pct, Some(5.0));
         // bank-new_from_parent-heights absent -> recorded error.
-        assert!(out
-            .errors
-            .contains(&"bank-new_from_parent-heights: not found in log".to_string()));
+        assert!(out.errors.contains(&"bank-new_from_parent-heights: not found in log".to_string()));
     }
 
     #[test]

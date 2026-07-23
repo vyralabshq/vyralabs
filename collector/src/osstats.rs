@@ -66,12 +66,7 @@ pub fn parse_df(out: &str) -> Disk {
 }
 
 fn meminfo_kb(out: &str, label: &str) -> Option<u64> {
-    out.lines()
-        .find(|l| l.starts_with(label))?
-        .split_whitespace()
-        .nth(1)?
-        .parse::<u64>()
-        .ok()
+    out.lines().find(|l| l.starts_with(label))?.split_whitespace().nth(1)?.parse::<u64>().ok()
 }
 
 /// Parse `/proc/meminfo` into a Disk-shaped memory reading (used = total - available).
@@ -87,22 +82,14 @@ pub fn parse_meminfo(out: &str) -> Disk {
                 total_gb: Some(kb_to_gib(t)),
             }
         }
-        (Some(t), _) => Disk {
-            pct: None,
-            used_gb: None,
-            total_gb: Some(kb_to_gib(t)),
-        },
+        (Some(t), _) => Disk { pct: None, used_gb: None, total_gb: Some(kb_to_gib(t)) },
         _ => Disk::empty(),
     }
 }
 
 /// Parse `/proc/loadavg` into [1, 5, 15]-minute averages, or None if malformed.
 pub fn parse_loadavg(out: &str) -> Option<Vec<f64>> {
-    let v: Vec<f64> = out
-        .split_whitespace()
-        .take(3)
-        .filter_map(|x| x.parse().ok())
-        .collect();
+    let v: Vec<f64> = out.split_whitespace().take(3).filter_map(|x| x.parse().ok()).collect();
     (v.len() == 3).then_some(v)
 }
 
@@ -133,10 +120,7 @@ pub fn parse_os_stats(input: &OsStatsInput, now: DateTime<Utc>) -> OsStats {
         memory: input.meminfo.as_deref().map(parse_meminfo).unwrap_or_else(Disk::empty),
         load_avg: input.loadavg.as_deref().and_then(parse_loadavg),
         cpu_cores: input.nproc.as_deref().and_then(|s| s.trim().parse().ok()),
-        uptime_seconds: input
-            .active_enter
-            .as_deref()
-            .and_then(|s| parse_uptime_seconds(s, now)),
+        uptime_seconds: input.active_enter.as_deref().and_then(|s| parse_uptime_seconds(s, now)),
         process_active: input.is_active.as_deref().and_then(parse_process_active),
     }
 }
@@ -173,10 +157,7 @@ mod tests {
     #[test]
     fn parses_uptime_from_active_enter() {
         let now: DateTime<Utc> = "2026-07-08T17:36:55Z".parse().unwrap();
-        let secs = parse_uptime_seconds(
-            "ActiveEnterTimestamp=Mon 2026-07-06 17:36:55 UTC",
-            now,
-        );
+        let secs = parse_uptime_seconds("ActiveEnterTimestamp=Mon 2026-07-06 17:36:55 UTC", now);
         // exactly two days.
         assert_eq!(secs, Some(2 * 86400));
     }

@@ -1,0 +1,5 @@
+# Match the repo's existing style: pack args/chains onto one line up to max_width
+# instead of rustfmt's default per-construct width limits (which explode short
+# run(...) calls into one-arg-per-line and fight editor format-on-save).
+max_width = 100
+use_small_heuristics = "Max"

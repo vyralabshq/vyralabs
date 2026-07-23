@@ -77,10 +77,7 @@ pub fn parse_version(json: &str) -> Option<Version> {
     if !r.is_object() {
         return None;
     }
-    Some(Version {
-        version: r["solana-core"].as_str().map(str::to_string),
-        jito: None,
-    })
+    Some(Version { version: r["solana-core"].as_str().map(str::to_string), jito: None })
 }
 
 #[cfg(test)]
@@ -115,10 +112,8 @@ mod tests {
 
     #[test]
     fn parses_get_version() {
-        let out = r#"{"jsonrpc":"2.0","result":{"feature-set":3345198602,"solana-core":"4.1.1"},"id":1}"#;
-        assert_eq!(
-            parse_version(out),
-            Some(Version { version: Some("4.1.1".into()), jito: None })
-        );
+        let out =
+            r#"{"jsonrpc":"2.0","result":{"feature-set":3345198602,"solana-core":"4.1.1"},"id":1}"#;
+        assert_eq!(parse_version(out), Some(Version { version: Some("4.1.1".into()), jito: None }));
     }
 }

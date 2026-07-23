@@ -12,9 +12,7 @@ use crate::schema::HistoryPoint;
 
 /// The point timestamp format used across the contract (`empty_*`/`iso_z`).
 fn parse_t(s: &str) -> Option<DateTime<Utc>> {
-    NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%SZ")
-        .ok()
-        .map(|n| n.and_utc())
+    NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%SZ").ok().map(|n| n.and_utc())
 }
 
 /// Roll a window forward one cycle: maybe append `current`, then trim to retention.

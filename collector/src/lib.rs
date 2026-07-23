@@ -3,6 +3,7 @@
 //! Pure assembly of a dashboard snapshot from already-fetched raw source outputs.
 //! See `docs/dashboard.md` for the JSON contract this crate mirrors.
 
+pub mod blockproduction;
 pub mod config;
 pub mod datapoints;
 pub mod derive;
@@ -15,7 +16,6 @@ pub mod rpc;
 pub mod schema;
 pub mod snapshot;
 pub mod state;
-pub mod blockproduction;
 pub mod voteaccount;
 pub mod window;
 

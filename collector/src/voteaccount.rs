@@ -75,10 +75,7 @@ pub fn parse_vote_account(json: &str) -> Option<VoteAccountData> {
     let recent_votes = consensus_inner(&v["votesObserved"]).as_array().map(|arr| {
         arr.iter()
             .filter_map(|e| {
-                Some(RecentVote {
-                    slot: e["slot"].as_i64()?,
-                    latency: e["latency"].as_i64(),
-                })
+                Some(RecentVote { slot: e["slot"].as_i64()?, latency: e["latency"].as_i64() })
             })
             .collect()
     });
