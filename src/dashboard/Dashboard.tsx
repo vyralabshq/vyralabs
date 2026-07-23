@@ -129,7 +129,8 @@ function rollup(s: DashboardState): {
     status.forkWeight(s.forkWeightPct),
     status.balance(s.identityBalanceSol),
   ];
-  const downSignals = [s.nodeHealthy, s.processActive, s.jitoActive].filter(
+  // Client flavor is metadata, not a health signal — only liveness counts here.
+  const downSignals = [s.nodeHealthy, s.processActive].filter(
     (x) => x === false,
   ).length;
   const down = metrics.filter((m) => m === "down").length + downSignals;
@@ -339,6 +340,7 @@ export default function Dashboard() {
             nodeHealthy={s.nodeHealthy}
             processActive={s.processActive}
             version={s.version}
+            jito={s.jitoActive}
           />
           <div className="flex flex-wrap gap-2.5">
             <PubkeyChip label="identity" value={s.identityPubkey} />

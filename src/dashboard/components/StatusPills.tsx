@@ -1,6 +1,5 @@
-// Status row: Node Healthy, Process Active, Jito Active. Quiet by design. When a
-// signal is up the dot just glows; only a problem (down / unknown) adds a word, so a
-// healthy node reads as calm rather than shouting three "UP" labels.
+// Status row: Node Healthy, Process Active, and a client pill (Agave / Jito + version).
+// Quiet by design: an up signal just glows, only down / unknown adds a word.
 
 type PillState = boolean | null;
 
@@ -34,23 +33,45 @@ function Pill({ label, state }: { label: string; state: PillState }) {
   );
 }
 
+/** Client family from version.jito: true → Jito, false → Agave, null unknown. */
+function clientLabel(jito: boolean | null | undefined): string {
+  if (jito === true) return "Jito";
+  if (jito === false) return "Agave";
+  return "client";
+}
+
 export function StatusPills({
   nodeHealthy,
   processActive,
   version,
+  jito,
 }: {
   nodeHealthy: PillState;
   processActive: PillState;
   version?: string | null;
+  jito?: boolean | null;
 }) {
+  const name = clientLabel(jito);
+  const clientText = version
+    ? name === "client"
+      ? version
+      : `${name} ${version}`
+    : name === "client"
+      ? null
+      : name;
+
   return (
     <div className="flex flex-wrap gap-2.5">
       <Pill label="Node healthy" state={nodeHealthy} />
       <Pill label="Process active" state={processActive} />
-      {version && (
-        <span className="inline-flex items-center gap-2 rounded-full border border-accent/15 bg-surface px-3.5 py-1.5 font-mono text-[12px] tabular-nums text-ink-secondary">
+      {clientText && (
+        <span
+          className="inline-flex items-center gap-2 rounded-full border border-accent/15 bg-surface px-3.5 py-1.5 font-mono text-[12px] tabular-nums text-ink-secondary"
+          role="status"
+          aria-label={`client: ${clientText}`}
+        >
           <span className="tracking-[0.08em] text-ink-tertiary">client</span>
-          Jito {version}
+          {clientText}
         </span>
       )}
     </div>
