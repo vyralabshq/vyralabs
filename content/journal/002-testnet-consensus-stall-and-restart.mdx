@@ -1,0 +1,145 @@
+---
+title: "Testnet consensus stall, July 2026: client switch, coordinated restart"
+date: "2026-07-23"
+number: 2
+author: "JK"
+tags: ["agave", "jito", "consensus", "hard-fork", "restart"]
+summary: "Testnet stalled on a jito/BAM consensus bug. We switched to stock Agave mid-incident, rebuilt through a wedged ledger, and rode out a cluster-wide coordinated restart."
+---
+
+July 21 to 23 UTC on our testnet node. Slot numbers, hashes, and log fragments are
+from the box.
+
+## What happened?
+
+On July 21 testnet consensus stalled. As described in the public restart
+instructions, the root cause was a bug in the jito-solana / BAM client: strict
+nonce size checks enabled on a consensus codepath that stock Agave did not have
+enabled. Nodes running jito wedged and stopped making progress; the cluster
+stopped finalizing.
+
+Our node was running jito-solana 4.2.0-beta.2. By ~04:00 UTC on July 22 it was
+wedged: `us:` frozen at **423534755**, gaining 0.0 slots/sec, ~35k slots behind.
+Cluster guidance was clear: jito/BAM operators move to Agave.
+
+What follows is the recovery, step by step.
+
+## Switching clients mid-incident
+
+07:19 to 07:48 UTC: I built stock Agave v4.2.0-beta.2 from source. The binary
+swap was not drop-in. The stock validator rejects jito-only flags, so the start
+script needed five of them stripped:
+
+```text
+--tip-payment-program-pubkey
+--tip-distribution-program-pubkey
+--merkle-root-upload-authority
+--block-engine-url
+--shred-receiver-address
+```
+
+I wrote an Agave-only start script, repointed systemd at it, and first booted
+with `--no-voting`. That was not a generic “get healthy first” habit. Voting into
+an unfinalized, stalled cluster risks lockout on a dead fork, and in the worst
+case a slashable vote. Until the cluster had a coordinated path out, the node
+should run and catch up without joining vote consensus.
+
+## The wedged ledger
+
+The node came up on Agave at 07:48, still pinned at the wedge slot. The on-disk
+RocksDB ledger was stuck at the pre-stall state, and the new client happily
+resumed from it. I moved the ledger aside; the node rebuilt from snapshot and
+began replaying forward at ~5 to 6 slots/sec.
+
+Replay advanced. Rooting did not. `highest-super-majority-root` sat frozen at
+**423534728** for over five hours. That number being stuck was not a local
+problem: nothing cluster-wide was finalizing, which also meant no fresh snapshots
+existed anywhere, since snapshots are generated at rooted slots. You cannot
+snapshot-hop your way out of a cluster that has stopped rooting.
+
+Around 11:47 the node hit the same `solReplayTx` stack overflow crash other
+operators reported. `Restart=always` caught it. Not memory pressure: 125 GB box,
+~34 GB used.
+
+## The coordinated restart
+
+~19:00 UTC: coordinated restart organized, restart slot **423585904** agreed
+cluster-wide. I stopped the node and verified the blockstore before touching
+anything:
+
+```bash
+agave-ledger-tool blockstore latest-optimistic-slots
+```
+
+Our latest optimistic slots matched the cluster's agreed restart point exactly.
+
+Then I generated the hard-fork restart snapshot (~18 minutes of replay),
+producing `incremental-snapshot-423525841-423585904-6veTfzos….tar.zst`.
+
+**The hash trap:** the restart instructions state bank hash `9x8k…`. The
+generated snapshot file hashes as `6veT…`. I read that mismatch as a bad snapshot
+and regenerated before working out why the two differ. They are different
+objects: the post-hard-fork **startup bank hash** (what `--expected-bank-hash`
+wants) versus the **snapshot file hash** (content identity of the tarball). The
+instructions were correct. Comparing them as if they should match burns time at
+the worst moment.
+
+19:34: restarted with the hard-fork trio:
+
+```text
+--wait-for-supermajority 423585904
+--expected-shred-version 27960
+--expected-bank-hash 9x8k…
+```
+
+That is also when voting became safe again. `--wait-for-supermajority` is the
+protection that replaced the earlier `--no-voting` stance: the node holds off
+until enough stake is at the restart slot, then joins consensus cleanly.
+
+One thing Agave got exactly right: it detected the hard fork, **discarded the
+stale tower automatically**, and rebuilt it from the vote account. No manual
+tower deletion, no double-vote risk, no intervention. That is the anxiety point
+on a first hard-fork restart, and the client handled it without a hand edit.
+
+## The wait
+
+Then thirteen and a half hours of watching stake percentages climb in gossip:
+45.7% → 47.8% → 49.6% → 68% → 74% → 80% threshold. From 19:45 on July 22 to
+~09:20 on July 23. There is nothing to do in this phase except not touch the
+node. At ~09:20 the cluster crossed 80%, the node resumed, and
+Processed/Confirmed/Finalized advanced in step. Recovered, though the cluster
+kept reconverging for hours after.
+
+## What was lost
+
+Honesty first. Epoch 993 vote credits landed at ~60% versus the 98 to 99% of prior
+epochs, and block production for the stall window is gone. Epoch 993 skip rate
+**36.4%**. That is what a cluster-wide stall costs even when the recovery goes
+cleanly: the node did nothing wrong after the switch, and the epoch numbers still
+carry the scar.
+
+## After recovery
+
+The incident did not end the moment slots advanced again. The morning after,
+while the cluster was still reconverging: **11 missed votes**, with the node
+stable throughout (**NRestarts 0**) and fork majority share at **77.8%**,
+consistent with votes landing on forks that lost, not with a local fault.
+Finality lag stayed elevated near **~44 slots** while stake reconverged. Easy to
+read as “your validator is broken.” It was not. Verify before you “fix” a
+healthy box.
+
+## The one still open
+
+Logrotate orphaned the validator log at midnight. The postrotate `USR1` signal is
+configured correctly, yet the validator kept writing to the rotated file
+descriptor. Unresolved for now: not the stall, not the restart; separate issue,
+still open.
+
+## What I learned
+
+- **`--no-voting` and `--wait-for-supermajority` solve different moments.** Mid
+  stall, do not vote into an unfinalized cluster. On a coordinated restart, the
+  supermajority wait is what makes voting safe again.
+- **Name the artifact before you compare hashes.** Startup bank hash and snapshot
+  file hash are not supposed to match. I burned a regenerate on that mistake;
+  the restart instructions were right.
