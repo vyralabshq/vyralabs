@@ -6,7 +6,14 @@
 //!
 //! Note: this CLI output does NOT carry activated stake — `getVoteAccounts` does. Until
 //! that source is wired, `activated_stake_sol` stays null. `max` per epoch is
-//! `maxCreditsPerSlot * slotsInEpoch`. Verified against real box output.
+//! `maxCreditsPerSlot * slotsInEpoch`.
+//!
+//! Shape history (all still accepted):
+//! - **Current (post-downgrade, Agave / jito CLI on box):** flat `votes: [{slot, latency, ...}]`
+//!   and flat `epochVotingHistory: [{epoch, creditsEarned, ...}]`.
+//! - **Agave 4.2 nested:** `votesObserved.Tower` / `.Votor` and
+//!   `epochVotingHistory[].tower` / `.votor`. Kept as fallback so a client bump that
+//!   reintroduces wrappers does not blank the dashboard again.
 
 use serde_json::Value;
 
@@ -17,9 +24,8 @@ use crate::schema::{EpochCredit, RecentVote};
 /// payload here. Matches the dashboard's own window.
 const EPOCH_CREDITS_KEEP: usize = 8;
 
-/// Agave 4.2 wraps per-epoch (and per-vote) objects under a consensus-type key
-/// (`tower` today, `votor` after Alpenglow). Return the inner object if a known
-/// wrapper is present, else the value itself (flat pre-4.2 shape).
+/// If `e` is wrapped under a consensus-type key (`tower` / `votor`, any case), return the
+/// inner object. Otherwise return `e` (flat shape).
 fn consensus_inner(e: &Value) -> &Value {
     for key in ["tower", "votor", "Tower", "Votor"] {
         if e.get(key).is_some() {
@@ -27,6 +33,37 @@ fn consensus_inner(e: &Value) -> &Value {
         }
     }
     e
+}
+
+/// Resolve the recent-votes array from either the current flat key or the 4.2 nested key.
+///
+/// Current CLI: `"votes": [ { "slot", "latency", "confirmationCount" }, ... ]`
+/// Agave 4.2:   `"votesObserved": { "Tower": [ ... ] }` (or Votor later)
+fn recent_votes_array(v: &Value) -> Option<&Vec<Value>> {
+    // Prefer the live flat key (what the box emits after the client switch).
+    if let Some(arr) = v.get("votes").and_then(Value::as_array) {
+        return Some(arr);
+    }
+    // Fallback: 4.2 nested votesObserved.{Tower|Votor|...}
+    if let Some(obs) = v.get("votesObserved") {
+        if let Some(arr) = obs.as_array() {
+            return Some(arr);
+        }
+        // Object wrapper: take the first array value among known consensus keys, else any array.
+        for key in ["Tower", "Votor", "tower", "votor"] {
+            if let Some(arr) = obs.get(key).and_then(Value::as_array) {
+                return Some(arr);
+            }
+        }
+        if let Some(obj) = obs.as_object() {
+            for (_k, val) in obj {
+                if let Some(arr) = val.as_array() {
+                    return Some(arr);
+                }
+            }
+        }
+    }
+    None
 }
 
 /// The data fields a vote-account fetch yields (no stale/fetched_at — caller owns those).
@@ -47,9 +84,7 @@ pub fn parse_vote_account(json: &str) -> Option<VoteAccountData> {
         let mut credits: Vec<EpochCredit> = arr
             .iter()
             .map(|e| {
-                // Agave 4.2 nests each entry under a consensus-type wrapper
-                // ("tower" now, "votor" once Alpenglow lands). Older builds were flat.
-                // Unwrap whichever wrapper exists, else read the entry directly.
+                // Flat entries today; unwrap tower/votor wrapper if a future build re-nests.
                 let inner = consensus_inner(e);
                 let per_slot = inner["maxCreditsPerSlot"].as_i64();
                 let slots = inner["slotsInEpoch"].as_i64();
@@ -60,8 +95,6 @@ pub fn parse_vote_account(json: &str) -> Option<VoteAccountData> {
                 }
             })
             .collect();
-        // Bound the payload to the newest EPOCH_CREDITS_KEEP epochs, regardless of the
-        // order the CLI emits them (sort ascending by epoch, drop the oldest overflow).
         credits.sort_by_key(|c| c.epoch);
         if credits.len() > EPOCH_CREDITS_KEEP {
             credits.drain(0..credits.len() - EPOCH_CREDITS_KEEP);
@@ -69,13 +102,14 @@ pub fn parse_vote_account(json: &str) -> Option<VoteAccountData> {
         credits
     });
 
-    // Recent votes: 4.2 nests the array under `votesObserved.Tower` (a `Votor` sibling
-    // will appear with Alpenglow); pre-4.2 it was a plain array. consensus_inner unwraps
-    // whichever wrapper exists, or the array itself.
-    let recent_votes = consensus_inner(&v["votesObserved"]).as_array().map(|arr| {
+    let recent_votes = recent_votes_array(&v).map(|arr| {
         arr.iter()
             .filter_map(|e| {
-                Some(RecentVote { slot: e["slot"].as_i64()?, latency: e["latency"].as_i64() })
+                let inner = consensus_inner(e);
+                Some(RecentVote {
+                    slot: inner["slot"].as_i64()?,
+                    latency: inner["latency"].as_i64(),
+                })
             })
             .collect()
     });
@@ -94,7 +128,46 @@ pub fn parse_vote_account(json: &str) -> Option<VoteAccountData> {
 mod tests {
     use super::*;
 
-    // Trimmed real sample from the box.
+    const SAMPLE_FLAT: &str = r#"{
+      "accountBalance": 1895918076184,
+      "validatorIdentity": "vyRa8J7ULHfUAdnkTHP3YGhcLWaLURXLmD7CiZkMzWg",
+      "credits": 53689740,
+      "commission": 100,
+      "rootSlot": 424759454,
+      "votes": [
+        { "latency": 1, "slot": 424759455, "confirmationCount": 31 },
+        { "latency": 1, "slot": 424759456, "confirmationCount": 30 },
+        { "latency": 3, "slot": 424759467, "confirmationCount": 19 }
+      ],
+      "epochVotingHistory": [
+        { "epoch": 995, "slotsInEpoch": 432000, "creditsEarned": 6578027, "credits": 53523402, "prevCredits": 46945375, "maxCreditsPerSlot": 16 },
+        { "epoch": 996, "slotsInEpoch": 432000, "creditsEarned": 166338, "credits": 53689740, "prevCredits": 53523402, "maxCreditsPerSlot": 16 }
+      ]
+    }"#;
+
+    #[test]
+    fn parses_flat_votes_and_epoch_history() {
+        let d = parse_vote_account(SAMPLE_FLAT).unwrap();
+        assert_eq!(d.credits_lifetime, Some(53_689_740));
+        assert_eq!(d.commission_pct, Some(100.0));
+
+        let ec = d.epoch_credits.unwrap();
+        assert_eq!(ec.len(), 2);
+        assert_eq!(ec[0].epoch, Some(995));
+        assert_eq!(ec[0].credits, Some(6_578_027));
+        assert_eq!(ec[0].max, Some(16 * 432_000));
+        assert_eq!(ec[1].epoch, Some(996));
+        assert_eq!(ec[1].credits, Some(166_338));
+
+        let rv = d.recent_votes.unwrap();
+        assert_eq!(rv.len(), 3);
+        assert_eq!(rv[0].slot, 424_759_455);
+        assert_eq!(rv[0].latency, Some(1));
+        assert_eq!(rv[2].slot, 424_759_467);
+        assert_eq!(rv[2].latency, Some(3));
+    }
+
+    // Older trimmed flat sample (no votes key).
     const SAMPLE: &str = r#"{
       "accountBalance": 27074400,
       "validatorIdentity": "vyRa8J7ULHfUAdnkTHP3YGhcLWaLURXLmD7CiZkMzWg",
@@ -112,7 +185,7 @@ mod tests {
         let d = parse_vote_account(SAMPLE).unwrap();
         assert_eq!(d.credits_lifetime, Some(2218603));
         assert_eq!(d.commission_pct, Some(100.0));
-        assert_eq!(d.activated_stake_sol, None); // not in this source
+        assert_eq!(d.activated_stake_sol, None);
 
         let ec = d.epoch_credits.unwrap();
         assert_eq!(ec.len(), 2);
@@ -120,9 +193,10 @@ mod tests {
         assert_eq!(ec[0].credits, Some(1_239_987));
         assert_eq!(ec[0].max, Some(16 * 432_000));
         assert_eq!(ec[1].epoch, Some(986));
+        assert!(d.recent_votes.is_none());
     }
 
-    // Agave 4.2: entries wrapped under "tower".
+    // Agave 4.2 nested shape — kept as fallback.
     const SAMPLE_4_2: &str = r#"{
       "credits": 3832063,
       "commission": 100,
@@ -173,5 +247,6 @@ mod tests {
         assert_eq!(d.credits_lifetime, None);
         assert_eq!(d.commission_pct, None);
         assert!(d.epoch_credits.is_none());
+        assert!(d.recent_votes.is_none());
     }
 }
