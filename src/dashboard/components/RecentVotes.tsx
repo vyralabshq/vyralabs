@@ -106,7 +106,7 @@ export function RecentVotes({
                 </span>{" "}
                 ·{" "}
                 <span className="tabular-nums text-ink-secondary">
-                  {Math.round(onTimePct ?? 0)}%
+                  {(onTimePct ?? 0).toFixed(1)}%
                 </span>{" "}
                 on time
                 {missed > 0 && (

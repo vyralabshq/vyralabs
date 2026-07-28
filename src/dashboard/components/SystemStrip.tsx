@@ -44,7 +44,7 @@ function Bar({
         )}
       </div>
       <span className="w-12 shrink-0 text-right font-mono text-xs tabular-nums text-ink-secondary">
-        {pct === null ? <Missing /> : `${Math.round(pct)}%`}
+        {pct === null ? <Missing /> : `${pct.toFixed(1)}%`}
       </span>
     </div>
   );

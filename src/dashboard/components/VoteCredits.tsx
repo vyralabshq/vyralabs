@@ -48,7 +48,7 @@ function CreditColumn({
   const frac = inProgress ? onPace : earned;
   const pct = frac === null ? null : Math.max(0, Math.min(100, frac * 100));
   const tier = pct === null ? null : creditTier(pct);
-  const label = pct === null ? "—" : `${Math.round(pct)}%`;
+  const label = pct === null ? "—" : `${pct.toFixed(1)}%`;
 
   return (
     <div className="flex w-12 flex-col items-center gap-2">

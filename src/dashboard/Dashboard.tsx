@@ -222,7 +222,7 @@ export default function Dashboard() {
   // Donut % guards divide-by-zero at the epoch-start state (0 of 136, all upcoming).
   const blockTotal = lp ? lp.leaderSlots.length : 0;
   const blockPct = (v: number) =>
-    blockTotal === 0 ? 0 : Math.round((v / blockTotal) * 100);
+    blockTotal === 0 ? "0.0" : ((v / blockTotal) * 100).toFixed(1);
   const blockDonut = lp
     ? [
         { name: "produced", value: lp.produced ?? 0, color: CHART.ok },
@@ -368,9 +368,7 @@ export default function Dashboard() {
             <StatPanel
               label="VOTE SUCCESS"
               value={
-                voteEfficiency === null
-                  ? null
-                  : `${Math.round(voteEfficiency)}%`
+                voteEfficiency === null ? null : fmtPct(voteEfficiency)
               }
               status={status.voteSuccess(voteEfficiency)}
               info="Share of this epoch's possible vote credits earned so far. 100% means every vote landed at the earliest slot; low means votes are landing late."
@@ -558,7 +556,7 @@ export default function Dashboard() {
                             {seg.name}
                           </span>
                           <span className="tabular-nums text-ink-tertiary">
-                            {Math.round((seg.value / creditDonut.max) * 100)}%
+                            {((seg.value / creditDonut.max) * 100).toFixed(1)}%
                           </span>
                         </div>
                       ))}
