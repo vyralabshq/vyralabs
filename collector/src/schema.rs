@@ -192,6 +192,21 @@ pub struct Latest {
     pub vote_account: VoteAccount,
     pub events: Vec<Event>,
     pub errors: Vec<String>,
+    /// Health of the public testnet RPC used only for per-slot block verification (getBlocks).
+    /// `None` until the daemon has a leader schedule to probe against. Distinct from the
+    /// node's own `health`. This is a second, cluster-level data tier that can degrade
+    /// while the validator stays perfectly healthy.
+    pub public_rpc: Option<SourceHealth>,
+}
+
+/// Liveness of an external data source the collector depends on, detected from the actual
+/// fetch (not inferred from missing data). `consecutive_failures` lets the frontend debounce
+/// a flicker; `last_ok` is the recovery timestamp shown while degraded.
+#[derive(Debug, Clone, Serialize)]
+pub struct SourceHealth {
+    pub ok: bool,
+    pub consecutive_failures: i64,
+    pub last_ok: Option<String>,
 }
 
 /// A schema-valid latest.json with every source-filled field null.
@@ -249,6 +264,7 @@ pub fn empty_latest(
         },
         events: Vec::new(),
         errors: Vec::new(),
+        public_rpc: None,
     }
 }
 

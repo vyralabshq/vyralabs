@@ -26,7 +26,7 @@ use crate::rpc::{
 };
 use crate::schema::{
     empty_history, empty_latest, EpochSkip, History, HistoryPoint, Latest, LeaderProduction,
-    Version, VoteAccount,
+    SourceHealth, Version, VoteAccount,
 };
 use crate::voteaccount::parse_vote_account;
 use crate::window::roll;
@@ -95,6 +95,9 @@ pub struct Inputs {
     pub identity_pubkey: Option<String>,
     pub vote_pubkey: Option<String>,
     pub cluster: String,
+    /// Public-RPC health for block verification, detected by the daemon from the getSlot
+    /// probe. `None` in `--once` (no live public RPC) and until a schedule exists.
+    pub public_rpc: Option<SourceHealth>,
 }
 
 impl Inputs {
@@ -363,6 +366,10 @@ pub fn build_snapshot(
             skip_history,
         };
     }
+
+    // Second data tier: public-RPC health for block verification. Pass the daemon's
+    // detected status straight through; the pure core does no I/O, so it can only relay.
+    latest.public_rpc = inputs.public_rpc.clone();
 
     // The current point carries the datapoint -> derived values for this cycle.
     let point = HistoryPoint {

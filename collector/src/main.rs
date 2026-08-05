@@ -26,6 +26,7 @@ use collector::config::{
     ACCOUNTS_PATH, CLUSTER, IDENTITY_PUBKEY, LEDGER_PATH, SERVICE_NAME, VOTE_PUBKEY,
 };
 use collector::rpc::{parse_blocks, parse_epoch_info, parse_slot_number};
+use collector::schema::SourceHealth;
 use collector::state::{load_state, save_state};
 use collector::{build_snapshot, fetch, Inputs, SnapshotResult};
 
@@ -98,6 +99,8 @@ fn run_once(args: &[String]) -> ExitCode {
         identity_pubkey: Some(IDENTITY_PUBKEY.to_string()),
         vote_pubkey: Some(VOTE_PUBKEY.to_string()),
         cluster: CLUSTER.to_string(),
+        // Public-RPC verification is daemon-only; no live status in a dry run.
+        public_rpc: None,
     };
 
     let prev_state = load_state(&state_path);
@@ -160,6 +163,11 @@ fn run_daemon() -> ExitCode {
     // changes. Unresolvable groups (purged past getFirstAvailableBlock) stay absent, so the
     // snapshot reports them as unknown rather than guessing.
     let mut production_cache: Option<(i64, std::collections::HashMap<i64, Vec<i64>>)> = None;
+    // Public-RPC (block-verification tier) health, tracked across cycles. `fails` counts
+    // consecutive misses so the frontend can debounce a flicker; `last_ok` is the recovery
+    // timestamp shown while degraded. Reset on restart; re-derives within a cycle.
+    let mut blocks_rpc_fails: i64 = 0;
+    let mut blocks_rpc_last_ok: Option<String> = None;
     eprintln!(
         "collector daemon up: cycle {}s, out {}, rpc {rpc_url}",
         cycle.as_secs(),
@@ -200,6 +208,9 @@ fn run_daemon() -> ExitCode {
         // Resolve past leader groups against cluster block history, a few per cycle. Gated
         // on the finalized tip (not processed): during a finality stall a produced block is
         // not yet in finalized getBlocks, and caching it as skipped would be a permanent lie.
+        // `blocks_rpc_ok` doubles as the public-RPC health probe: Some(true/false) once we
+        // have a schedule to check, None before that (status unknown, section hidden anyway).
+        let mut blocks_rpc_ok: Option<bool> = None;
         if let Some((_, disp, slots)) = leader_schedule.as_ref() {
             if production_cache.as_ref().is_none_or(|(e, _)| e != disp) {
                 production_cache = Some((*disp, std::collections::HashMap::new()));
@@ -209,6 +220,7 @@ fn run_daemon() -> ExitCode {
                 fetch::curl_rpc(&blocks_rpc, "getSlot", "[{\"commitment\":\"finalized\"}]")
                     .as_deref()
                     .and_then(parse_slot_number);
+            blocks_rpc_ok = Some(finalized.is_some());
             if let Some(tip) = finalized {
                 let unresolved: Vec<(i64, i64)> = group_runs(slots)
                     .into_iter()
@@ -252,6 +264,23 @@ fn run_daemon() -> ExitCode {
             _ => (None, None),
         };
 
+        // Update public-RPC health from this cycle's probe: success resets the failure
+        // streak and stamps the recovery time; a miss just increments. `None` (no schedule
+        // yet) leaves the counters untouched and reports no status.
+        let public_rpc = blocks_rpc_ok.map(|ok| {
+            if ok {
+                blocks_rpc_fails = 0;
+                blocks_rpc_last_ok = Some(Utc::now().to_rfc3339());
+            } else {
+                blocks_rpc_fails += 1;
+            }
+            SourceHealth {
+                ok,
+                consecutive_failures: blocks_rpc_fails,
+                last_ok: blocks_rpc_last_ok.clone(),
+            }
+        });
+
         let inputs = Inputs {
             log_lines: fetch::read_log_lines(log_file.as_deref(), SERVICE_NAME, 500),
             monitor_output: fetch::fetch_monitor(LEDGER_PATH, "agave-validator"),
@@ -285,6 +314,7 @@ fn run_daemon() -> ExitCode {
             identity_pubkey: Some(IDENTITY_PUBKEY.to_string()),
             vote_pubkey: Some(VOTE_PUBKEY.to_string()),
             cluster: CLUSTER.to_string(),
+            public_rpc,
         };
         if do_vote {
             last_vote_fetch = Some(Instant::now());
