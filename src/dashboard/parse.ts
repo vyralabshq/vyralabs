@@ -111,6 +111,7 @@ function emptyState(): DashboardState {
     dropRatePct: null,
     forkWeightPct: null,
     leaderProduction: null,
+    publicRpc: null,
     ledgerDisk: { pct: null, usedGb: null, totalGb: null },
     accountsDisk: { pct: null, usedGb: null, totalGb: null },
     memory: { pct: null, usedGb: null, totalGb: null },
@@ -250,6 +251,15 @@ export function parseSnapshot(raw: unknown, now: Date): DashboardState {
       clusterSkipRatePct: num(lp.cluster_skip_rate_pct),
       nextLeaderSlot: num(lp.next_leader_slot),
       skipHistory: history,
+    };
+  }
+
+  const pub_ = asObject(root.public_rpc);
+  if (pub_) {
+    s.publicRpc = {
+      ok: pub_.ok === true,
+      consecutiveFailures: num(pub_.consecutive_failures) ?? 0,
+      lastOk: parseDate(pub_.last_ok),
     };
   }
 

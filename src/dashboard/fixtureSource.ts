@@ -10,6 +10,7 @@ import healthy from "./fixtures/latest.healthy.json";
 import nullHeavy from "./fixtures/latest.null-heavy.json";
 import voteStale from "./fixtures/latest.vote-stale.json";
 import old from "./fixtures/latest.old.json";
+import blocksDown from "./fixtures/latest.blocks-down.json";
 import type { RawLatest } from "./types";
 
 const FIXTURES: Record<string, RawLatest> = {
@@ -17,6 +18,7 @@ const FIXTURES: Record<string, RawLatest> = {
   "null-heavy": nullHeavy as RawLatest,
   "vote-stale": voteStale as RawLatest,
   old: old as RawLatest,
+  "blocks-down": blocksDown as RawLatest,
 };
 
 const ALERT = "alert";
@@ -43,5 +45,15 @@ export function loadFixtureLatest(now: Date): RawLatest {
   const name = selectedFixtureName();
   if (name === ALERT) return withRecentEvents(healthy as RawLatest, now);
   const raw = FIXTURES[name];
-  return name === "old" ? raw : { ...raw, generated_at: now.toISOString() };
+  if (name === "old") return raw;
+  const stamped = { ...raw, generated_at: now.toISOString() };
+  // Demo the degraded public-RPC path: stamp last_ok a few minutes back so the banner's
+  // "last reached Xm ago" reads sensibly against the refreshed generated_at.
+  if (name === "blocks-down" && stamped.public_rpc) {
+    stamped.public_rpc = {
+      ...stamped.public_rpc,
+      last_ok: new Date(now.getTime() - 4 * 60 * 1000).toISOString(),
+    };
+  }
+  return stamped;
 }

@@ -181,6 +181,14 @@ export default function Dashboard() {
       ? null
       : (now.getTime() - s.voteAccountFetchedAt.getTime()) / 1000;
 
+  // Second data tier: the public RPC that verifies block production per slot. Debounced at
+  // 2 consecutive misses so a single transient failure doesn't flicker the banner; clears
+  // the instant the collector reports a success. The node's own metrics are unaffected.
+  const blocksDegraded =
+    s.publicRpc !== null &&
+    !s.publicRpc.ok &&
+    s.publicRpc.consecutiveFailures >= 2;
+
   // Vote distance: how many slots behind the chain tip our last vote landed. This is the
   // real "is it keeping up" signal (unlike tower depth, which sits near 31 always).
   const voteDistance = behind(s.processedSlot, s.voteLatest);
@@ -334,6 +342,12 @@ export default function Dashboard() {
           </div>
         )}
 
+        {blocksDegraded && (
+          <div className="mb-6">
+            <Banner message="Public testnet RPC unreachable. Block verification paused." />
+          </div>
+        )}
+
         {/* Identity + liveness band: full width, so the left column above stays uncluttered */}
         <div className="flex flex-wrap items-center justify-between gap-4 panel px-5 py-4">
           <StatusPills
@@ -471,6 +485,7 @@ export default function Dashboard() {
                   epochStart={lp.epochStartSlot ?? lp.leaderSlots[0]}
                   epochEnd={lp.epochEndSlot ?? lp.leaderSlots[lp.leaderSlots.length - 1]}
                   currentSlot={lp.currentSlot ?? 0}
+                  sourceDegraded={blocksDegraded}
                 />
               </div>
 

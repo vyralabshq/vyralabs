@@ -54,6 +54,13 @@ export interface RawLatest {
     next_leader_slot: number | null;
     skip_history: { epoch: number; skip_rate_pct: number }[];
   } | null;
+  /** Public-RPC (block-verification tier) health. Absent on old collector builds and in
+      `--once`; present once the daemon probes it. */
+  public_rpc?: {
+    ok: boolean;
+    consecutive_failures: number;
+    last_ok: string | null;
+  } | null;
   /** Raw 0-1 fraction from the bank_weight datapoint; frontend derives % = *100. */
   fork_weight: number | null;
 
@@ -180,6 +187,14 @@ export interface LeaderProduction {
   skipHistory: EpochSkip[];
 }
 
+/** Health of an external data source, detected by the collector from the actual fetch.
+    `consecutiveFailures` lets the UI debounce a flicker; `lastOk` is the recovery time. */
+export interface PublicRpcHealth {
+  ok: boolean;
+  consecutiveFailures: number;
+  lastOk: Date | null;
+}
+
 /** Whole-page liveness signal (#7). Values always visible, just dimmed off LIVE. */
 export type Liveness = "LIVE" | "STALE" | "OFFLINE";
 
@@ -244,6 +259,11 @@ export interface DashboardState {
   /** Leader schedule + block production ("is it producing"). null until the collector emits
       it (old builds) or before any schedule is fetched. */
   leaderProduction: LeaderProduction | null;
+
+  /** Health of the public RPC used only for per-slot block verification (second data tier).
+      null until the collector probes it. When !ok the leader-group timeline goes unverified
+      while every local-tier metric stays current. */
+  publicRpc: PublicRpcHealth | null;
 
   // System (#4)
   ledgerDisk: DiskUsage;

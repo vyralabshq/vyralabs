@@ -42,11 +42,14 @@ export function LeaderTimeline({
   epochStart,
   epochEnd,
   currentSlot,
+  sourceDegraded = false,
 }: {
   groups: LeaderGroup[];
   epochStart: number;
   epochEnd: number;
   currentSlot: number;
+  /** Public verification RPC unreachable; explains why ticks read unverified. */
+  sourceDegraded?: boolean;
 }) {
   const span = epochEnd - epochStart;
   const pct = (slot: number) =>
@@ -54,10 +57,20 @@ export function LeaderTimeline({
 
   return (
     <div className="panel p-4 sm:p-5">
-      <p className="mb-4 flex items-center gap-1.5 text-[13px] text-ink-secondary">
-        Leader groups this epoch
-        <InfoTip text="Every leader assignment this epoch, positioned by where it falls in the 432,000-slot span. Each group is a 4-slot window. Colour shows the outcome, verified per slot against cluster block history; the line marks the current slot. Unverified means the block evidence was already purged from ledger history before it could be checked — not an error, just no proof either way." />
-      </p>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="flex items-center gap-1.5 text-[13px] text-ink-secondary">
+          Leader groups this epoch
+          <InfoTip text="Every leader assignment this epoch, positioned by where it falls in the 432,000-slot span. Each group is a 4-slot window. Colour shows the outcome, verified per slot against cluster block history; the line marks the current slot. Unverified means the block evidence was already purged from ledger history before it could be checked, not an error, just no proof either way." />
+        </p>
+        {sourceDegraded && (
+          <span
+            role="status"
+            className="shrink-0 rounded-full border border-accent-bright/40 px-1.5 py-0.5 font-mono text-[10px] text-accent-bright"
+          >
+            verification source down
+          </span>
+        )}
+      </div>
 
       {/* Track: ticks sit on a baseline, the now-marker sweeps left to right as the epoch runs. */}
       <div className="relative h-12">
