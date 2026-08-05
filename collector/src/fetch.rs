@@ -82,9 +82,12 @@ pub fn fetch_monitor(ledger: &str, bin: &str) -> Option<String> {
     result
 }
 
-/// `solana vote-account <vote-pubkey> --output json` (credits/commission/epoch history).
+/// `solana -ut vote-account <vote-pubkey> --output json` (credits/commission/epoch history).
+/// `-ut` (testnet) is required, matching leader-schedule/block-production: the node runs
+/// `--private-rpc`, so the CLI default (localhost:8899) has no getVoteAccounts and the fetch
+/// would silently go stale (issue: rc.1 repointed the CLI at localhost).
 pub fn fetch_vote_account(vote_pubkey: &str) -> Option<String> {
-    run("solana", &["vote-account", vote_pubkey, "--output", "json"])
+    run("solana", &["-ut", "vote-account", vote_pubkey, "--output", "json"])
 }
 
 /// `solana leader-schedule --epoch <N>` — the whole-cluster schedule as text (`<slot>
