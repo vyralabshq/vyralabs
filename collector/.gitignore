@@ -1,0 +1,4 @@
+
+# runtime state (rolling-window, written by the daemon)
+state.json
+out/
