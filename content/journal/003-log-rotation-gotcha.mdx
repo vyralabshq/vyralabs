@@ -28,14 +28,12 @@ yesterday’s log is saved, and a fresh one starts. After a week or so, the olde
 one is deleted. It looks like this:
 
 ```text
-solana-validator.log        2.9G  Jul 11 18:31
-solana-validator.log.1.gz   590M  Jul 10 00:00
-solana-validator.log.2.gz   575M  Jul 09 00:00
-solana-validator.log.3.gz   588M  Jul 08 00:00
-solana-validator.log.4.gz   561M  Jul 07 00:00
-solana-validator.log.5.gz   579M  Jul 06 00:00
-solana-validator.log.6.gz   552M  Jul 05 00:00
-solana-validator.log.7.gz   567M  Jul 04 00:00
+solana-validator.log      today’s log
+solana-validator.log.1    yesterday
+solana-validator.log.2    two days ago
+solana-validator.log.3    three days ago
+solana-validator.log.4    four days ago
+... and so on
 ```
 
 A tool called logrotate handles this. It runs once a day, renames yesterday’s
