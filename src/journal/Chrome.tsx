@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { NavLink } from "react-router-dom";
 import { links } from "../content";
 
 // Shared page frame for the Field Notes entry: the same backdrops, wordmark, and nav as
@@ -46,6 +47,16 @@ export function Chrome({
           <a className={navLink} href="/">
             Home
           </a>
+          {/* Section marker: accent + current on the index, a plain link back from a post. */}
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              `${navLink} ${isActive ? "text-accent" : ""}`
+            }
+          >
+            Field notes
+          </NavLink>
           <a
             className={navLink}
             href={links.github}
