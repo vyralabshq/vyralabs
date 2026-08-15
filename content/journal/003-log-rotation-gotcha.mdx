@@ -1,34 +1,28 @@
 ---
 title: "The Log Rotation Gotcha"
-date: "2026-07-14"
+date: "2026-08-11"
 number: 3
 author: "Moses"
 tags: ["ops", "logrotate", "validator", "monitoring"]
-summary: "While poking at dashboard metrics we found solana-validator.log at 3.8 GB and climbing. We had skipped logrotate in the setup script. Fixing it meant learning why rename alone is not enough — inodes, fds, and SIGUSR1."
+summary: "Our validator log hit 3.8 GB because we skipped logrotate. Why rename alone is not enough: inodes, fds, and SIGUSR1."
 ---
 
-We didn’t plan for this. We were just building a dashboard for our testnet
-validator, poking around to check which metrics were real. That’s when we
-noticed a file growing too big. The file `solana-validator.log` was already at
-3.8 GB, and the next day it was pushing to 7 GB.
+We were building a dashboard for our testnet validator, poking around to check
+which metrics were real. That is when we noticed `solana-validator.log` had
+already grown to 3.8 GB, and by the next day it was pushing 7 GB.
 
-This is how we got to know about log rotation and why we missed it.
+That is how we learned about log rotation, and why we had missed it: we followed
+a setup script, and log rotation lived in a different section that we skipped.
+The upside is that watching our own metrics surfaced the problem fast.
 
-The reason we missed it is low-key silly, but that's how we grow, right?
+## What log rotation does
 
-We followed a script while setting up the validator, and log rotation was in a
-different section altogether. It got missed, but the good thing is that we check
-our metrics and were able to find this problem pretty quickly.
-
-## What Log Rotation Does
-
-In plain English: log rotation keeps our log files from growing out of control.
-Instead of one endless file, we get a series of smaller files. Each day,
-yesterday’s log is saved, and a fresh one starts. After a week or so, the oldest
-one is deleted. It looks like this:
+Log rotation keeps log files from growing without bound. Instead of one endless
+file, you get a series of smaller ones. Each day yesterday's log is saved and a
+fresh one starts; after a week or so the oldest is deleted. It looks like this:
 
 ```text
-solana-validator.log      today’s log
+solana-validator.log      today's log
 solana-validator.log.1    yesterday
 solana-validator.log.2    two days ago
 solana-validator.log.3    three days ago
@@ -36,36 +30,34 @@ solana-validator.log.4    four days ago
 ... and so on
 ```
 
-A tool called logrotate handles this. It runs once a day, renames yesterday’s
-file, starts a new one, and deletes the oldest. We set the rules in a config
-file, and logrotate does the rest.
+A tool called logrotate handles this. It runs once a day: renames yesterday's
+file, starts a new one, deletes the oldest. You set the rules in a config file
+and logrotate does the rest.
 
-## The Interesting Stuff
+## Why rename alone is not enough
 
-Here’s where it gets interesting. Files in Unix-like systems have two parts: the
-data (the actual bytes) and the metadata (size, permissions, owner, timestamps,
-and crucially, pointers to where the data blocks live on disk). That metadata
-blob is the inode. It has a number, but it does not store the filename.
+Files in Unix-like systems have two parts: the data (the actual bytes) and the
+metadata (size, permissions, owner, timestamps, and crucially, pointers to where
+the data blocks live on disk). That metadata blob is the inode. It has a number,
+but it does not store the filename.
 
-A name of a file is just a mapping to an inode number. We can have multiple names
-pointing at the same inode number or zero names pointing at a live inode (a
-deleted but still open file).
+A filename is just a mapping to an inode number. You can have multiple names
+pointing at the same inode, or zero names pointing at a live inode (a deleted but
+still open file).
 
-One more thing to understand here is the File Descriptor (fd). When a process
-calls `open("sol.log")`, the kernel walks the directory, finds the inode, and
-hands the process back a small integer — the fd (0, 1, 2, 3...). Think of it as
-a claim ticket / handle. From that point on, every `read()`/`write()` the process
-does uses that fd number, and the kernel resolves it internally to "inode 48213,
-current offset X." The process never looks up the name again for that handle.
+The other piece is the file descriptor (fd). When a process calls
+`open("sol.log")`, the kernel walks the directory, finds the inode, and hands the
+process back a small integer, the fd (0, 1, 2, 3...). Think of it as a claim
+ticket. From that point on, every `read()`/`write()` the process does uses that
+fd number, and the kernel resolves it internally to "inode 48213, current offset
+X." The process never looks up the name again for that handle.
 
-Why this matters for our logrotate case is that `rename()` only edits the name; a
-process holding an fd is bound to the inode, not the name. So just renaming our
-file to a different name will not do the trick. It will continue to write to the
-same log file, albeit with a different name now.
+This is why `rename()` alone does not help: it only edits the name, but a process
+holding an fd is bound to the inode, not the name. Rename the file and the
+validator keeps writing to the same inode, now under a different name.
 
-To fix this, logrotate doesn’t just rename the file — it also tells the
-validator to reopen its log file. It does this by sending it a special signal
-called USR1. In the config, you’ll see:
+So logrotate does not only rename the file, it also tells the validator to reopen
+its log. It does this with a signal called USR1. In the config you will see:
 
 ```text
 postrotate
@@ -73,17 +65,17 @@ postrotate
 endscript
 ```
 
-Despite the scary “kill” word, this just means “send USR1.” When the validator
-gets it, it starts writing to the new log file. Problem solved.
+Despite the scary "kill" word, this just means "send USR1." When the validator
+gets it, it starts writing to the new log file.
 
 This works because SIGUSR1 is the trigger that makes the validator voluntarily
-drop the fd and call `open()` again — which is the only way to get a new fd
+drop the fd and call `open()` again, which is the only way to get a new fd
 pointing at the new inode.
 
-## Common issue
+## The permissions snag
 
-Turns out, lots of people have hit this issue. The Anza docs have a guide for
-it: [https://docs.anza.xyz/operations/guides/validator-start](https://docs.anza.xyz/operations/guides/validator-start)
+This is a common one; the Anza docs cover it:
+[https://docs.anza.xyz/operations/guides/validator-start](https://docs.anza.xyz/operations/guides/validator-start)
 
 We set up the config and ran a dry run. It failed at first:
 
@@ -93,9 +85,9 @@ has insecure permissions ... Set "su" directive in config file to tell logrotate
 which user/group should be used for rotation.
 ```
 
-Our logs folder was owned by the sol user, not root. By default, logrotate
-doesn’t want to mess with files it doesn’t own. The fix? Add `su sol sol` to the
-config to run rotation as the right user. Here’s what worked:
+Our logs folder was owned by the sol user, not root. By default, logrotate will
+not touch files it does not own. The fix is to add `su sol sol` to the config so
+rotation runs as the right user. Here is what worked:
 
 ```text
 /home/sol/logs/solana-validator.log {
@@ -112,7 +104,7 @@ config to run rotation as the right user. Here’s what worked:
 After that, the dry run passed. The daily timer was already running, so
 everything started rotating on schedule.
 
-## Did It Work?
+## Did it work?
 
 A week later, we checked:
 
@@ -127,5 +119,5 @@ solana-validator.log.6     8.0G  Jul  9 00:00   (the old backlog)
 ```
 
 Each rotated file is stamped at exactly midnight. The current log keeps growing,
-and the old ones are frozen. That’s how we know the log rotation and signal are
+and the old ones are frozen. That is how we know the rotation and the signal are
 working.
