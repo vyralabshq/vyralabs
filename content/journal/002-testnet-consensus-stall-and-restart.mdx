@@ -4,7 +4,7 @@ date: "2026-07-23"
 number: 2
 author: "JK"
 tags: ["agave", "jito", "consensus", "hard-fork", "restart"]
-summary: "Testnet stalled on a jito/BAM consensus bug. We switched to stock Agave mid-incident, rebuilt through a wedged ledger, and rode out a cluster-wide coordinated restart."
+summary: "A jito/BAM consensus bug stalled testnet. Recovery took a mid-incident client switch, a wedged-ledger rebuild, and a cluster-wide coordinated restart."
 ---
 
 July 21 to 23 UTC on our testnet node. Slot numbers, hashes, and log fragments are
@@ -39,7 +39,7 @@ script needed five of them stripped:
 ```
 
 I wrote an Agave-only start script, repointed systemd at it, and first booted
-with `--no-voting`. That was not a generic “get healthy first” habit. Voting into
+with `--no-voting`. That was not a generic "get healthy first" habit. Voting into
 an unfinalized, stalled cluster risks lockout on a dead fork, and in the worst
 case a slashable vote. Until the cluster had a coordinated path out, the node
 should run and catch up without joining vote consensus.
@@ -125,7 +125,7 @@ while the cluster was still reconverging: **11 missed votes**, with the node
 stable throughout (**NRestarts 0**) and fork majority share at **77.8%**,
 consistent with votes landing on forks that lost, not with a local fault.
 Finality lag stayed elevated near **~44 slots** while stake reconverged. Easy to
-read as “your validator is broken.” It was not. Verify before you “fix” a
+read as "your validator is broken." It was not. Verify before you "fix" a
 healthy box.
 
 ## The one still open
