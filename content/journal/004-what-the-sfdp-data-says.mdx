@@ -1,0 +1,188 @@
+---
+title: "What the SFDP data actually says"
+date: "2026-09-02"
+number: 4
+author: "JK"
+tags: ["sfdp", "solana", "delegation", "validator"]
+summary: "We pulled all 10,967 SFDP records. Onboarding did not slow in 2026, it stopped in December 2025, and 'retired' mostly means 'never got in.'"
+---
+
+The Solana Foundation runs a delegation program that has handed stake to thousands
+of validators since 2021. It publishes an API with every applicant in it. It does
+not publish any analysis of that API. So we pulled all 10,967 records and looked.
+
+We are not neutral. Vyra Labs is one of the 89 validators sitting in the queue,
+waiting for a mainnet onboarding email. Anatoly has said the program is past its
+time and Helius has argued for dismantling it, but neither argument had the numbers,
+because nobody had counted them. We counted.
+
+```text
+Dataset        10,967 participant records
+Detail         460 active, plus a 705-record sample of retired
+Joined with    Stakewiz, 696 live validators
+Snapshot       2 September 2026, epoch 1024
+```
+
+## "Retired" mostly means never got in
+
+The FAQ explains retirement as graduation: a validator eligible on mainnet for 18
+months or more, still under 5,000 SOL of independent stake, gets cycled out to make
+room. The policy is "onboard 1, offboard 3."
+
+Read the state counts and you would think 3,516 validators went through mainnet and
+got cycled out. They did not. We sampled 705 retired records: only 17% carry an
+onboarding epoch. The other 83% were never onboarded at all. They applied, got
+approved onto testnet, and were dropped before any delegation arrived. That is
+roughly 2,908 validators who never reached mainnet delegation.
+
+- **Rejected, 6,991.** Application declined, plus operators removed for abuse.
+- **Retired, 3,516.** About 608 graduated, the rest never reached mainnet.
+- **Approved, 360.** Onboarded and holding a delegation. The live program.
+- **TestnetOnboarded, 89.** On testnet, waiting for a mainnet email.
+- **Pending, 11.** Applied, not yet decided.
+
+We pulled the API twice, 48 hours apart. Exactly one record changed: a testnet
+validator moved from `TestnetOnboarded` to `Retired`, with zero vote credits and no
+recent bonus epochs. It had stopped running, and that forfeits your place in the
+queue.
+
+## Onboarding stopped in December 2025
+
+We reconstructed the monthly onboarding rate from the `sfdp2OnboardingEpoch` field,
+counting every validator that was ever onboarded, including those later retired. For two years it was steady: between 13 and 31 validators a month. Then
+November 2025 saw 14, December saw 1, and it never recovered. 2026 is averaging 2.5 a
+month. Yearly totals: about 188 in 2024, about 202 in 2025, 20 so far in 2026, a fall
+of roughly 85% on a full-year run rate.
+
+The Foundation's own February 2026 case study explains the timing. The final
+transition began in October 2025, when stake matching stepped from 1:1 to 0.5:1, and
+the onboarding data shows that landing about two months later. No announcement said
+onboarding had halted. The pages are current, client versions are published four
+epochs ahead, and applications are still open.
+
+## The program worked
+
+Every cohort it onboarded survived at a higher rate than the last.
+
+```text
+Cohort          Onboarded(est)   Still approved   Survival
+Pre-Dec 2023    ~549             115              21%
+2024            ~188             93               50%
+2025            ~202             127              63%
+2026             20              20               100%
+```
+
+Ignore 2026: nobody is old enough to hit the 18-month retirement mark, so the 100%
+only reflects how recent they are. Across pre-2024, 2024 and 2025 the direction is
+steady. Every time the Foundation tightened its criteria, the validators it let in
+were more likely to become self-sustaining, which is what the program set out to do.
+
+## The ones still in it barely need it
+
+The typical survivor now holds more stake from the open market (median 81,063 SOL)
+than from the Foundation (median 69,646 SOL). Only 4 of 356 sit near the 5,000 SOL
+retirement threshold. The Foundation's share of network stake fell from 44.4% at
+launch to 5.45%, while the stake on the validators it helped build rose to 15.2% of
+the network.
+
+They also run clean: median skip rate 0.00%, 354 of 356 run Jito, one is delinquent.
+If the program ended tomorrow, this group would keep running on the stake it has
+already attracted.
+
+## Concentration, and the sybil claim
+
+By country, the set concentrates: Germany 91, United States 65, Netherlands 48,
+Singapore 40, Japan 32. A program built for decentralisation produced a validator set
+that is 26% German by count. Within SFDP, stake clusters on a few hosts:
+
+```text
+SFDP host      Validators   Share of SFDP stake
+Allnodes       48           16.4%
+Latitude.sh    59           12.4%
+Vultr          38            7.6%
+```
+
+The top three hold 36% of SFDP stake, and the 25% ASN and 15% data centre limits apply
+per validator, so they cap where one node sits without constraining the aggregate. The largest single SFDP cluster is 32
+validators in Frankfurt on one ASN and client version, at 9.6% of program stake.
+
+Zoom out to all of mainnet, grouped by ASN (since provider names in the metadata are
+inconsistent), and it is far starker:
+
+```text
+Mainnet stake by ASN (Stakewiz, epoch 1024)
+ASN        Provider                Active   Stake    Share
+AS20326    TeraSwitch               94     112.0M    25.5%
+AS396356   Latitude.sh              94      60.3M    13.8%
+AS395201   Allnodes                 73      31.0M     7.1%
+AS7979     Servers.com              21      20.8M     4.7%
+AS16125    Dedicated Servers (LT)   18      19.8M     4.5%
+```
+
+Three networks carry 46.4% of all active Solana stake. TeraSwitch alone runs 106
+validators, 94 active and 12 delinquent, holding a quarter of the network. That is the
+number behind the 12 August route leak, when a bad route out of its Miami site pushed
+roughly 29% of stake delinquent, close to the one-third of stake that would halt the
+network.
+(validators.app files TeraSwitch higher, at 130.3M SOL, some of it under "Private
+Customer"; both sources put it near or above a quarter.)
+
+And not one of the 356 SFDP validators sits on TeraSwitch. It is the only ASN above the
+program's 25% concentration cap, at 25.5%, so hosting there fails the residual criteria
+and costs you the delegation. The rule that shields the program from the largest host
+is what pushes every SFDP validator onto the next tier. (Disclosure: our own testnet
+node runs on TeraSwitch, which is exactly why our mainnet box will land elsewhere,
+likely Latitude, once onboarding comes.)
+
+On 24 August 2026, <a href="https://x.com/andreivacariu_" target="_blank" rel="noreferrer">@andreivacariu\_</a> published research claiming about one in five active SFDP
+validators are run by three coordinated operators, citing 40 of 107 nodes in one pool
+sharing a host, version, stake sources, and governance vote timing. Public data
+confirms the clustering; the Frankfurt group is exactly that signature. Clustering is
+not proof of control, since one host serves many independent operators. The
+response, though, is on the record: three days later, the six validators in the smaller
+cluster were rejected. That shows the Rejected bucket is an active enforcement tool.
+The Foundation used it to remove six operators who were already inside the program.
+
+## The delegation never covered the cost
+
+At 5.17% APY and 5% commission, the median delegation earns the operator about 180
+SOL a year, roughly $18,600 at $103. Mainnet voting costs about 1.08 SOL a day, 394
+SOL a year, roughly $40,700. Break-even is around 152,500 SOL, more than double the
+median delegation. After Alpenglow, at our measured 0.80 SOL a day, it falls to about
+113,000.
+
+So the delegation was never meant to be a business. It covers about a year of costs
+while a validator finds real stake, which is exactly what the retirement rule then
+tests for. And 126 of 356 run 0% commission: for a third of the program, the validator
+brings users to another product and earns nothing itself.
+
+## Who gets in now, and who waits
+
+Twenty validators onboarded in 2026, including Step Finance, Raiku, and Tapedrive
+(onboarded after just nine epochs on testnet). Median
+time on testnet before onboarding was 22 epochs, about six weeks. Meanwhile the queue
+has 89 waiting, median tenure 318 epochs (roughly 21 months); the longest has waited
+509 epochs, about 34 months, with a flawless record. None of 2026's twenty came from
+that long tail. On the evidence, a named contribution to the ecosystem counts for more
+than time in the queue or a clean record.
+
+## What this data cannot tell you
+
+- **Epoch 577 is a migration stamp, not a cohort.** 57% of onboarding records share
+  that December 2023 epoch, when v2 tracking began and every existing participant was
+  stamped at once. Month-by-month analysis uses post-migration records only.
+- **The retired figures are a 20% sample**, 705 of 3,516, scaled by 4.99. Cohort
+  counts carry roughly 10% sampling error. Read them as estimates.
+- **Clustering is not proof of control, and nothing here reveals intent.** The
+  onboarding collapse is a measured fact; whether it is a deliberate halt, a backlog,
+  or a staffing change (the Staking Operations Lead changed around April 2026) is not
+  something this data answers.
+
+## Method
+
+All 10,967 records pulled from the Foundation's public participant API
+(`api.solana.org/api/validators`) on 2 September 2026, with detail records for all
+460 active participants and a 705-record random sample of retired. Onboarding history
+from the `sfdp2OnboardingEpoch` field; stake, hosting, client and geography joined
+against Stakewiz, which also supplies the network-wide stake by ASN, cross-checked
+against validators.app. Vote cost figures are our own measurements.
