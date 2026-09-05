@@ -68,4 +68,9 @@ for (const file of files) {
   count += 1;
 }
 
-console.log(`prerender-og: wrote ${count} per-post HTML file(s) to dist/logs/`);
+// The index. Writing the per-post files turned /logs into a real directory, so it now
+// needs its own index.html or Vercel 404s /logs instead of falling through to the
+// rewrite. The journal shell (generic, site-wide OG) is exactly right for the index.
+await writeFile(join(DIST, "logs", "index.html"), shell, "utf8");
+
+console.log(`prerender-og: wrote ${count} per-post HTML file(s) + index to dist/logs/`);
