@@ -1,0 +1,201 @@
+---
+title: "Tuning a Validator"
+date: "2026-09-05"
+number: 5
+author: "Moses"
+tags: ["ops", "cpu", "irq", "validator", "testnet"]
+summary: "Skip rate was 9.1% against a 1.08% cluster. The node looked healthy. The problem was Linux trying to save power, and a NIC layout irqbalance would quietly undo."
+---
+
+One fine morning, we noticed something weird with our validator. It was skipping
+8 times the cluster rate: our skip rate sat at 9.1% while the cluster was around
+1.08%. That is not something you can ignore, so we started looking for a reason.
+
+## The first thing we checked
+
+The obvious place to start was the validator logs. The validator had skipped 16
+slots, and they were not spread through the epoch. All four groups of skipped
+slots fell inside a 45-minute window. During that period the node repeatedly
+reported itself 130–287 slots behind the cluster, and stayed behind for about
+22 minutes.
+
+A validator that far behind cannot produce its blocks. By the time it catches up
+to its leader slot, the cluster has already moved on. So we had a working theory:
+the validator was falling behind, and once it fell behind it was missing its
+leader slots. The next question was why.
+
+## What it wasn’t
+
+Most of the investigation was elimination. We went through the usual suspects:
+
+- The validator hadn’t restarted. The process had been running for four days.
+- CPU steal was zero. This was bare metal, so there was no obvious
+  oversubscription problem.
+- Disk I/O wasn’t the issue. `wa` stayed at zero.
+- There was plenty of disk space.
+- Almost no swap usage, and plenty of RAM available.
+- We were running the recommended testnet release.
+- The relevant sysctl values were already configured correctly.
+- UDP buffers were already at the recommended values.
+- RSS hashing was enabled.
+- NUMA wasn’t an issue because this was a single-socket machine.
+- Snapshots weren’t taking time during the incident.
+
+Everything we expected to be wrong looked fine. Which was slightly annoying. But
+it narrowed things down.
+
+## Then we found the CPU governor
+
+Looking at the machine itself, we came across something easy to overlook: the CPU
+frequency governor, which decides how aggressively the system changes CPU
+frequency. Ours was set to `ondemand`.
+
+The idea behind `ondemand` is reasonable for a normal server. If the machine
+isn’t doing much work, keep the frequency low; when load increases, raise it.
+That saves power. But a validator is not a normal workload. It works all the
+time, and when it is producing a block it has no room to suddenly decide it
+should speed up.
+
+All 32 threads were using `ondemand`. The machine had a rated base clock of
+3.0 GHz, but when we measured it the average clock was around 2.17 GHz, dropping
+as low as 1.5 GHz. So we had a 3 GHz CPU regularly running well below 3 GHz.
+
+## Why CPU frequency mattered
+
+Solana produces a block roughly every 197 ms, which gives the validator a tight
+window to process each incoming block. If processing takes longer than the gap
+between blocks, the validator starts falling behind.
+
+The lower average frequency turned out to matter less than the jitter. With
+`ondemand`, the CPU can sit at a low frequency and then have to ramp up when
+work arrives. Most of the time that is fine. But validators do not care only
+about the average case.
+
+We looked at PoH verification, a particularly CPU-sensitive part of replay:
+
+```text
+PoH verification     Before      After
+p50                  27.8 ms     20.9 ms
+p90                  84.8 ms     26.8 ms
+p99                  163.6 ms    31.0 ms
+max                  1500.3 ms   55.7 ms
+```
+
+The median didn’t change dramatically. The tail did. The worst PoH verification
+went from about 1.5 seconds to 55.7 ms, which matters when a slot lasts around
+197 ms. One operation taking 1.5 seconds puts the validator several slots behind
+immediately, and once you are behind you do not have infinite time to catch up.
+You are still processing new blocks while replaying the old ones.
+
+## The fix
+
+We changed the CPU governor from `ondemand` to `performance`.
+
+```text
+echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+```
+
+Then we verified that all the CPUs were using it:
+
+```text
+cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor | sort | uniq -c
+```
+
+Which gave us `32 performance`. We made the change persistent with a small
+systemd service so it would not disappear after a reboot. After the change, the
+CPU was no longer dropping below its rated base clock.
+
+```text
+Clock                    ondemand, idle    ondemand, loaded    performance
+min                      1500 MHz          2200 MHz            3000 MHz
+avg                      2171 MHz          2906 MHz            3376 MHz
+max                      3717 MHz          3717 MHz            3718 MHz
+```
+
+Peak speed barely moved. The spread went from 2217 MHz to 718 MHz, and that
+predictability matters more than peak speed for this workload.
+
+## There was another problem
+
+While investigating the validator, we also found something strange with the NIC.
+The network card had eight hardware queues, and one of them was doing much worse
+than the others. Historically the node had discarded around 283 million packets,
+but the distribution was very uneven: one queue accounted for 183 million of
+them, about 76% of all discards.
+
+The reason was CPU affinity. Two of the NIC queues had been assigned to CPUs
+that were the two SMT threads of the same physical core. So one physical core
+was handling two queues while other cores handled none. That is not exactly
+ideal.
+
+## irqbalance was the culprit
+
+The machine was running irqbalance, which automatically assigns hardware
+interrupts to CPUs. That is normally useful. But for a latency-sensitive
+workload where we care about exactly where network interrupts run, automatic
+balancing becomes a problem: it can move the queues around, so the configuration
+silently changes over time.
+
+We disabled irqbalance and pinned the eight NIC queues ourselves. One extra
+detail mattered here. The EPYC 7313P has four cache domains, and we wanted the
+queues spread across them rather than stacked onto one, so we assigned two
+queues per cache domain. Getting the queues onto different CPUs was the easy
+half. The rest was reading the actual CPU and cache topology of the machine
+instead of assuming CPU 1–8 were a good choice.
+
+## Did NIC pinning make the validator faster?
+
+No.
+
+After pinning the interrupts, the performance numbers were unchanged.
+
+```text
+Before:
+discards over 900s: 69
+PoH    p50=21.0 p90=26.0 p99=31.0 max=48.4 ms
+replay p50=166  p90=209  p99=259  max=702 ms
+
+After:
+discards over 900s: 0
+PoH    p50=21.0 p90=26.9 p99=31.7 max=71.0 ms
+replay p50=163  p90=209  p99=263  max=443 ms
+```
+
+By the time we made this change, packet discards were already close to zero and
+the validator was already performing better than the cluster average. What we
+gained was determinism. The NIC queues are now assigned where we want them
+instead of wherever irqbalance decides to move them, so the problem we found in
+the historical data cannot quietly come back because the interrupt layout
+changed.
+
+## What actually fixed the skip rate?
+
+Changing the CPU governor did not immediately make the 9.1% skip rate disappear.
+The skipping had already stopped about ten hours before we made the change. What
+the governor change did was remove a condition that made the validator vulnerable
+to falling behind in the first place.
+
+The next epoch gave us an independent check. The skip rate dropped from 9.1% to
+0.6% while the cluster was around 1.08%, and vote success improved from 95.8% to
+98.2%. The validator behaved much better afterwards, not just on the CPU graph.
+
+## What I learned from this
+
+Changing a CPU governor is one line. Pinning NIC interrupts is not complicated
+either. The difficult part was figuring out where to look.
+
+The validator looked healthy. It wasn’t restarting, disk wasn’t overloaded,
+memory wasn’t full, the kernel parameters were correct, and the network
+configuration looked fine. The problem was hiding underneath all of that, and
+what finally gave it away was the tail rather than any average. The CPU was fast
+enough most of the time, but occasionally it was slow enough for long enough to
+matter.
+
+A normal server can tolerate a few seconds of bad CPU frequency scaling. A
+validator has a chain arriving every ~197 ms. If your machine occasionally takes
+longer than that to process what just arrived, those small delays turn into
+skipped slots.
+
+So the lesson, at least for this validator: don’t tune for average performance,
+tune for predictable performance. And sometimes the problem isn’t in Solana at
+all. Sometimes it’s just Linux trying to save a little power.
