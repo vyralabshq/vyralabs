@@ -55,7 +55,10 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
-      # Fail the job on moderate+ known vulnerabilities so they get
-      # triaged in a PR instead of silently shipping.
+      # Fail on moderate+ vulnerabilities in shipped (production) dependencies,
+      # so they get triaged in a PR instead of silently shipping. Dev/build tools
+      # (--omit=dev) never reach users and only process our own trusted content,
+      # so an advisory there does not gate CI (e.g. toml via remark-mdx-frontmatter,
+      # which parses our YAML frontmatter at build time only).
       - name: Audit dependencies
-        run: npm audit --audit-level=moderate
+        run: npm audit --omit=dev --audit-level=moderate
