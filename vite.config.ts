@@ -32,10 +32,9 @@ function remarkReadingTime() {
   }
 }
 
-// Three standalone build entries: the landing page (index.html), the validator
-// dashboard (dashboard.html), and the Field Notes journal (journal.html). Keeping
-// them separate keeps each one's deps (ECharts on the dashboard, MDX/router on the
-// journal) out of the other bundles.
+// Two standalone build entries: the landing page (index.html) and the Field Notes
+// journal (journal.html). Keeping them separate keeps the journal's deps (MDX/router)
+// out of the landing bundle. The validator dashboard now lives at testnet.vyralabs.fun.
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -74,7 +73,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
-        dashboard: resolve(import.meta.dirname, 'dashboard.html'),
         journal: resolve(import.meta.dirname, 'journal.html'),
       },
     },

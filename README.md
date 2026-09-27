@@ -9,20 +9,21 @@
 
 <p align="center">
   <a href="https://vyralabs.fun">Site</a> &nbsp;·&nbsp;
-  <a href="https://vyralabs.fun/dashboard">Dashboard</a>
+  <a href="https://testnet.vyralabs.fun">Dashboard</a>
 </p>
 
 ## What's in here
 
 - **`src/`** — a Vite multi-page app with two entries sharing one design system:
   - Landing page: `index.html` → `src/App.tsx` (copy lives in `src/content.ts`).
-  - Validator status dashboard: `dashboard.html` → `src/dashboard/` (a pure
-    `parseSnapshot` seam, a polling hook, ECharts visualizations, and a
-    LIVE → STALE → OFFLINE liveness model that degrades instead of blanking).
+  - Field Notes journal: `journal.html` → `src/journal/` (MDX posts from
+    `content/journal/`, per-post social cards via `scripts/prerender-og.mjs`).
+  - The validator status dashboard now lives at
+    [testnet.vyralabs.fun](https://testnet.vyralabs.fun); `/dashboard` redirects there.
 - **`collector/`** — a dependency-light Rust daemon that samples the validator
   read-only (`agave-validator monitor`, localhost RPC, `solana vote-account`, OS
   stats), assembles a size-bounded JSON snapshot via a pure `build_snapshot()`
-  core, and publishes it for the dashboard to read. See `collector/deploy/RUN.md`.
+  core, and publishes it. See `collector/deploy/RUN.md`.
 
 ## Stack
 
@@ -51,7 +52,7 @@ cargo build --release
 
 ```
 index.html            landing entry
-dashboard.html        dashboard entry
+journal.html          field notes entry
 src/
   App.tsx             landing page
   content.ts          landing copy

@@ -92,7 +92,7 @@ function App() {
               <Wordmark />
             </a>
             <nav className="flex items-center gap-5 font-mono text-[13px] text-ink-secondary">
-              <a className={navLink} href="/dashboard">
+              <a className={navLink} href="https://testnet.vyralabs.fun">
                 Dashboard
               </a>
               <a className={navLink} href="/logs">
@@ -389,7 +389,7 @@ function App() {
           <div>
             <h2 className="mb-4 font-display text-[15px] font-bold text-ink">Platform</h2>
             <nav className="flex flex-col gap-2.5 font-mono text-[13px] text-ink-secondary">
-              <a className={`${navLink} w-fit`} href="/dashboard">
+              <a className={`${navLink} w-fit`} href="https://testnet.vyralabs.fun">
                 Dashboard
               </a>
               <a className={`${navLink} w-fit`} href="/logs">

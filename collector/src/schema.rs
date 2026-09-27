@@ -1,9 +1,8 @@
-//! The JSON contract, mirrored from docs/dashboard.md (Schema).
-//!
-//! This is the Rust side of the same contract the frontend types in
-//! src/dashboard/types.ts mirror. Edit both together when the schema changes.
+//! The JSON contract the collector publishes for the dashboard (now at
+//! testnet.vyralabs.fun) to read. Keep in sync with the dashboard's snapshot types
+//! when the schema changes.
 //! Every field is `null` until its source fills it; derivations are done by the
-//! frontend for latest.json and by the collector for history points.
+//! consumer for latest.json and by the collector for history points.
 //!
 //! `Option::None` serializes to JSON `null` (no `skip_serializing_if`), so a
 //! source-unfilled field stays present-and-null in the output, as the contract requires.

@@ -18,7 +18,7 @@ export const hero = {
   headingAccent: "Production.",
   subheading:
     "We run a Solana validator in the open and build the tooling that keeps it healthy. Every benchmark, deployment, failure, and lesson, shared openly.",
-  primaryCta: { label: "See the Node", href: "/dashboard" },
+  primaryCta: { label: "See the Node", href: "https://testnet.vyralabs.fun" },
   secondaryCta: { label: "Read the Field Notes", href: "/logs" },
   ctaNote: "live node,\nnot a screenshot",
 };
@@ -43,10 +43,10 @@ export const workstreams: {
     {
       title: "Run the node in public",
       detail:
-        "Testnet validator on bare metal. Live dashboard at vyralabs.fun, no login. Vote distance, credits, and system health from the box.",
+        "Testnet validator on bare metal. Live dashboard at testnet.vyralabs.fun, no login. Vote distance, credits, and system health from the box.",
       tag: "LIVE",
       tone: "live",
-      href: "/dashboard",
+      href: "https://testnet.vyralabs.fun",
     },
     {
       title: "Write the field notes",
@@ -93,7 +93,7 @@ export const milestones: {
       body: "Live on bare metal. Building operations and track record for the Solana Foundation Delegation Program.",
       tag: "LIVE",
       state: "live",
-      href: "/dashboard",
+      href: "https://testnet.vyralabs.fun",
       note: null,
     },
     {

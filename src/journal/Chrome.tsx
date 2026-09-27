@@ -100,7 +100,7 @@ export function Chrome({
             <a className={navLink} href="/">
               Home
             </a>
-            <a className={navLink} href="/dashboard">
+            <a className={navLink} href="https://testnet.vyralabs.fun">
               Dashboard
             </a>
             <a
