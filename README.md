@@ -4,7 +4,7 @@
 
 <p align="center">
   Solana validator infrastructure, built in public.<br/>
-  A landing page and a live validator status dashboard, fed by a read-only Rust collector on the validator box.
+  A landing page and field notes journal. The testnet validator it reported on was retired 29 Oct 2026; the read-only Rust collector in `collector/` is kept as reference code.
 </p>
 
 <p align="center">

@@ -22,9 +22,7 @@ const TONE: Record<string, { dot: string; text: string }> = {
 };
 
 function LiveDot() {
-  return (
-    <span className="h-2 w-2 shrink-0 rounded-full bg-accent shadow-[0_0_8px_rgba(232,120,32,0.65)]" />
-  );
+  return <span className="h-2 w-2 shrink-0 rounded-full bg-ink-muted" />;
 }
 
 function Wordmark({ size = "md" }: { size?: "md" | "sm" }) {
