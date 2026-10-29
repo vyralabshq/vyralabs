@@ -14,8 +14,8 @@ export const statedGoal = {
 
 export const hero = {
   liveBadge: "TESTNET NODE · RETIRED 29 OCT 2026",
-  heading: "From First Principles to",
-  headingAccent: "Production.",
+  heading: "Solana infra,",
+  headingAccent: "built in the open.",
   subheading:
     "We ran a Solana validator in the open for 117 days and built the tooling around it. Every benchmark, deployment, failure, and lesson, shared openly.",
   primaryCta: { label: "Read the Field Notes", href: "/logs" },
@@ -76,7 +76,7 @@ export const workstreams: {
       external: true,
     },
     {
-      title: "Write the field notes",
+      title: "Field notes",
       detail:
         "Operational write-ups of what broke and how it got fixed: client upgrades, XDP walls, consensus stall and restart. Real logs, not marketing.",
       tag: "LIVE",
@@ -84,7 +84,7 @@ export const workstreams: {
       href: "/logs",
     },
     {
-      title: "Run the node in public",
+      title: "Testnet validator",
       detail:
         "Testnet validator on bare metal in Singapore, 4 Jul to 29 Oct 2026. Epochs 1055 to 1072: 6,904 leader slots produced, 12 skipped (0.17%).",
       tag: "RETIRED",
@@ -92,11 +92,12 @@ export const workstreams: {
       href: null,
     },
     {
-      title: "Instrument the node",
-      detail: "driftwatch: eBPF disk-latency to vote-credit correlator. Parked with the node; evidence runs not published.",
-      tag: "PARKED",
-      tone: "soon",
-      href: null,
+      title: "driftwatch",
+      detail: "eBPF tool that ties a validator's disk latency to its vote credits. Ran on our testnet validator.",
+      tag: "OPEN SOURCE",
+      tone: "live",
+      href: "https://github.com/vyralabshq/driftwatch",
+      external: true,
     },
   ],
 };
@@ -116,7 +117,7 @@ export const milestones: {
     note: string | null;
   }[];
 } = {
-  eyebrow: "ROADMAP",
+  eyebrow: "STATUS",
   heading: "Where the lab stands.",
   cards: [
     {

@@ -8,8 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="https://vyralabs.fun">Site</a> &nbsp;·&nbsp;
-  <a href="https://testnet.vyralabs.fun">Dashboard</a>
+  <a href="https://vyralabs.fun">Site</a>
 </p>
 
 ## What's in here
@@ -18,8 +17,6 @@
   - Landing page: `index.html` → `src/App.tsx` (copy lives in `src/content.ts`).
   - Field Notes journal: `journal.html` → `src/journal/` (MDX posts from
     `content/journal/`, per-post social cards via `scripts/prerender-og.mjs`).
-  - The validator status dashboard now lives at
-    [testnet.vyralabs.fun](https://testnet.vyralabs.fun); `/dashboard` redirects there.
 - **`collector/`** — a dependency-light Rust daemon that samples the validator
   read-only (`agave-validator monitor`, localhost RPC, `solana vote-account`, OS
   stats), assembles a size-bounded JSON snapshot via a pure `build_snapshot()`

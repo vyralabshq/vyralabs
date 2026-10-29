@@ -1,9 +1,5 @@
 {
   "cleanUrls": true,
-  "redirects": [
-    { "source": "/dashboard", "destination": "https://testnet.vyralabs.fun", "permanent": false },
-    { "source": "/dashboard/:path*", "destination": "https://testnet.vyralabs.fun/:path*", "permanent": false }
-  ],
   "rewrites": [
     { "source": "/logs", "destination": "/journal.html" },
     { "source": "/logs/(.*)", "destination": "/journal.html" }

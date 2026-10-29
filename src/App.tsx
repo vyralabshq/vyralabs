@@ -90,9 +90,6 @@ function App() {
               <Wordmark />
             </a>
             <nav className="flex items-center gap-5 font-mono text-[13px] text-ink-secondary">
-              <a className={navLink} href="https://testnet.vyralabs.fun">
-                Dashboard
-              </a>
               <a className={navLink} href="/logs">
                 Logs
               </a>
@@ -106,7 +103,7 @@ function App() {
 
       <main id="top" className={`relative z-10 ${measure}`}>
         {/* 1. HERO — rails only here */}
-        <section className="flex min-h-[calc(100dvh-88px)] flex-col items-start justify-center pb-20 pt-6">
+        <section className="relative flex min-h-[calc(100dvh-88px)] flex-col items-center justify-center pb-20 pt-6 text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-cream/15 bg-surface/80 px-3.5 py-1.5 font-mono text-[11px] tracking-[0.14em] text-ink-secondary">
             <LiveDot />
             {hero.liveBadge}
@@ -118,7 +115,7 @@ function App() {
           <p className="max-w-[34rem] font-text text-[17px] leading-[1.65] text-ink-secondary">
             {hero.subheading}
           </p>
-          <div className="mt-9 flex flex-wrap items-center gap-3">
+          <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
             <a
               className="inline-flex items-center rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-[#1a0d02] transition-colors duration-100 hover:bg-accent-bright active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
               href={hero.primaryCta.href}
@@ -134,9 +131,9 @@ function App() {
           </div>
           <span
             aria-hidden="true"
-            className="pointer-events-none ml-5 mt-1 hidden select-none items-start gap-1.5 text-ink-tertiary sm:flex"
+            className="pointer-events-none ml-5 mt-1 hidden select-none items-start gap-1.5 text-ink-tertiary sm:flex lg:absolute lg:left-0 lg:top-[70%] lg:mt-0 lg:ml-0 lg:flex-row-reverse lg:text-left"
           >
-            <svg width="34" height="30" viewBox="0 0 34 30" fill="none">
+            <svg width="34" height="30" viewBox="0 0 34 30" fill="none" className="lg:hidden">
               <path
                 d="M31 27C18 25 7 19 4 4"
                 stroke="currentColor"
@@ -150,7 +147,21 @@ function App() {
                 strokeLinecap="round"
               />
             </svg>
-            <span className="mt-3.5 -rotate-3 font-mono text-[11px] leading-[1.5] tracking-[0.02em] whitespace-pre-line">
+            <svg width="84" height="34" viewBox="0 0 84 34" fill="none" className="hidden lg:block">
+              <path
+                d="M2 30C30 30 62 24 80 4"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+              />
+              <path
+                d="M80 4 73.3 6.2M80 4 78.5 10.9"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="mt-3.5 -rotate-3 font-mono text-[11px] lg:text-[12px] leading-[1.5] tracking-[0.02em] whitespace-pre-line">
               {hero.ctaNote}
             </span>
           </span>
@@ -387,9 +398,6 @@ function App() {
           <div>
             <h2 className="mb-4 font-display text-[15px] font-bold text-ink">Platform</h2>
             <nav className="flex flex-col gap-2.5 font-mono text-[13px] text-ink-secondary">
-              <a className={`${navLink} w-fit`} href="https://testnet.vyralabs.fun">
-                Dashboard
-              </a>
               <a className={`${navLink} w-fit`} href="/logs">
                 Logs
               </a>
